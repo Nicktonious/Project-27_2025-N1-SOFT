@@ -1,3 +1,7 @@
+const COMMON_CONSTANTS = {
+    MIN_VOLTAGE: 16,
+    SPIRAL_SAFE_MODE: true
+}
 const STORAGE_CONSTANSTS = {
     SHORT_CH_VAL: 1,
     POWER_OFF_CH_VAL: 1,
@@ -7,16 +11,16 @@ const STORAGE_CONSTANSTS = {
     TAMPER_UNDEFINED: 0,
 
     AVG_ROTATION_TIME: 3000,
-    FULL_ROTATION_TIMEOUT: 3500,
+    FULL_ROTATION_TIMEOUT: 4000,
     TAMPER_DEBOUNCE: 500,
 
-    MONITOR_INTERVAL: 200,
+    MONITOR_INTERVAL: 400,
 
     CURRENT_RANGE: {
-        IDLE: [0, 0.3],
-        WORK_OK: [0.3, 0.21],
-        OVERLOAD: [0.21, 1],
-        SHORT: [1, Infinity]
+        IDLE: [0, 0.15],
+        WORK_OK: [0.15, 0.25],
+        OVERLOAD: [0.3, 1.4],
+        SHORT: [1.4, Infinity]
     },
 
     VOLTAGE_RANGE: {
@@ -47,18 +51,18 @@ const LIFT_CONSTANTS = {
 
     DOUBLE_TRIGGER_WINDOW: 100,
 
-    ELEVATE_NEXT_AVG_TIME: 800,
+    ELEVATE_NEXT_AVG_TIME: 900,
     ELEVATE_NEXT_OVERLOAD_TIME: 1000,
-    ELEVATE_NEXT_MAX_TIME: 1200,
+    ELEVATE_NEXT_MAX_TIME: 2000,
 
     MOTOR_RES_MAX_TIME: 500,
     MONITOR_INTERVAL: 200,
 
     CURRENT_RANGE: {
-        IDLE: [0, 0.1],
-        WORK_OK: [0.1, 0.29],
-        OVERLOAD: [0.29, 4.5],
-        SHORT: [4.5, Infinity]
+        IDLE: [0, 0.08],
+        WORK_OK: [0.08, 2],
+        OVERLOAD: [2, 5],
+        SHORT: [5, Infinity]
     },
 
     ELECTR_CURR_STATE: {
@@ -163,15 +167,15 @@ const U_TRANSACTIONS = {
     ACTUATOR_DISCONNECT_GND: 'Отключение актуатора от Gnd',
     ACTUATOR_DISCONNECT_V_PLUS: 'Отключение актуатора от V+',
 
-    LIFT_CONNECT_GND_REV: 'Подключение лифта к Gnd/Reverse',
+    LIFT_REV: 'Включения лифта для движения вниз',
     LIFT_DISCONNECT_GND_REV: 'Отключение лифта от Gnd/Reverse',
     LIFT_CONNECT_V_PLUS_REV: 'Подключение лифта к V+/Reverse',
-    LIFT_DISCONNECT_V_PLUS_REV: 'Отключение лифта от V+/Reverse',
+    LIFT_STOP_AFTER_REV: 'Выключение лифта после движения вниз',
 
-    LIFT_CONNECT_GND_FWD: 'Подключение лифта к Gnd/Forward',
+    LIFT_FWD: 'Включение лифта для движения вверх',
     LIFT_DISCONNECT_GND_FWD: 'Отключение лифта от Gnd/Forward',
     LIFT_CONNECT_V_PLUS_FWD: 'Подключение лифта к V+/Forward',
-    LIFT_DISCONNECT_V_PLUS_FWD: 'Отключение лифта от V+/Forward'
+    LIFT_STOP_AFTER_FWD: 'Выключение лифта после движения вверх'
 };
 
-module.exports = { STORAGE_CONSTANSTS, LIFT_CONSTANTS, BOX_CONSTANTS, CELL_CONSTANTS, FAULTS, FAULT_DESC_RU, U_TRANSACTIONS };
+module.exports = { COMMON_CONSTANTS, STORAGE_CONSTANSTS, LIFT_CONSTANTS, BOX_CONSTANTS, CELL_CONSTANTS, FAULTS, FAULT_DESC_RU, U_TRANSACTIONS };
