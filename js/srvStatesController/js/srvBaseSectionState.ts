@@ -31,6 +31,7 @@ export type ISectionParams = SectionConfig;
 
 export class BaseSectionState<TCellState extends string = CELL_STATE> extends EventEmitter2 implements Omit<IBaseSectionState, 'Cells'> {
     public Name: string;
+    public Type: string;
     public IsAvailable: AVAILABLE_STATE;
     public Status: SECTION_STATUS;
     public Rows: LINE_STATE[];
@@ -43,6 +44,7 @@ export class BaseSectionState<TCellState extends string = CELL_STATE> extends Ev
     constructor(config: ISectionParams) {
         super();
         this.Name = config.Name;
+        this.Type = config.Type;
         this.IsAvailable = AVAILABLE_STATE.YES;
         this.Status = SECTION_STATUS.IDLE;
         const rows = (config as SectionConfig).Rows;
