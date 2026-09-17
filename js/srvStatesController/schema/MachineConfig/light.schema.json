@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LightConfig",
+  "description": "Конфигурация каналов управления подсветкой и освещением",
+  "type": "object",
+  "properties": {
+    "Channels": {
+      "type": "object",
+      "description": "Отображение индекса секции или устройства на имя канала освещения",
+      "patternProperties": {
+        "^[0-9]+$": {
+          "type": "string",
+          "description": "Имя канала управления подсветкой"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "Channels"
+  ],
+  "additionalProperties": false
+}

@@ -8,6 +8,14 @@
       "description": "Глобальные параметры аппарата",
       "$ref": "./global.schema.json"
     },
+    "Monitoring": {
+      "description": "Конфигурация параметров фонового мониторинга",
+      "$ref": "./monitoring.schema.json"
+    },
+    "Light": {
+      "description": "Конфигурация каналов управления подсветкой и освещением",
+      "$ref": "./light.schema.json"
+    },
     "Power": {
       "description": "Конфигурация подсистемы электропитания",
       "$ref": "./power.schema.json"
@@ -48,6 +56,8 @@
   },
   "required": [
     "Global",
+    "Monitoring",
+    "Light",
     "Power",
     "Env",
     "Net",

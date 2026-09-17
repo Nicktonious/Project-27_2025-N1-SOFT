@@ -10,7 +10,7 @@
     },
     "ID": {
       "type": "string",
-      "description": "Идентификатор секции (UUID)"
+      "description": "Идентификатор секции"
     },
     "Type": {
       "$ref": "#/definitions/SECTION_TYPE"
@@ -23,12 +23,28 @@
       "type": "number",
       "description": "Число ячеек на полке"
     },
+    "PowerBus": {
+      "type": "number",
+      "description": "Номер подключенной шины электропитания"
+    },
     "IOList": {
       "type": "array",
       "description": "Массив имён модулей ввода-вывода (IO), закреплённых за данной секцией",
       "items": {
         "type": "string"
       }
+    },
+    "Channels": {
+      "$ref": "#/definitions/SectionChannelsConfig"
+    },
+    "Lift": {
+      "$ref": "#/definitions/SectionLiftConfig"
+    },
+    "Storage": {
+      "$ref": "#/definitions/SectionStorageConfig"
+    },
+    "CellOpts": {
+      "$ref": "#/definitions/SectionCellOptsConfig"
     }
   },
   "required": [
@@ -37,7 +53,9 @@
     "Type",
     "Rows",
     "Cols",
-    "IOList"
+    "PowerBus",
+    "IOList",
+    "Channels"
   ],
   "additionalProperties": false,
   "definitions": {
@@ -57,6 +75,190 @@
         "WEIGHT",
         "DOZER"
       ]
+    },
+    "SectionChannelsConfig": {
+      "title": "SectionChannelsConfig",
+      "description": "Группа всех каналов ввода/вывода секции",
+      "type": "object",
+      "properties": {
+        "Door": {
+          "$ref": "#/definitions/DoorChannelsConfig"
+        },
+        "DeliveryBox": {
+          "$ref": "#/definitions/DeliveryBoxChannelsConfig"
+        },
+        "Storage": {
+          "$ref": "#/definitions/StorageChannelsConfig"
+        },
+        "Lift": {
+          "$ref": "#/definitions/LiftChannelsConfig"
+        },
+        "Led": {
+          "$ref": "#/definitions/LedChannelsConfig"
+        }
+      },
+      "additionalProperties": false
+    },
+    "DoorChannelsConfig": {
+      "title": "DoorChannelsConfig",
+      "description": "Канал концевика двери секции",
+      "type": "object",
+      "properties": {
+        "Sensor": {
+          "type": "string",
+          "description": "Канал концевика двери"
+        }
+      },
+      "required": [
+        "Sensor"
+      ],
+      "additionalProperties": false
+    },
+    "DeliveryBoxChannelsConfig": {
+      "title": "DeliveryBoxChannelsConfig",
+      "description": "Каналы отсека выдачи товара",
+      "type": "object",
+      "properties": {
+        "Lock": {
+          "type": "string",
+          "description": "Канал замка / привода шторки отсека выдачи"
+        },
+        "Optic": {
+          "type": "string",
+          "description": "Канал оптического датчика наличия / падения товара"
+        },
+        "Monitoring": {
+          "type": "string",
+          "description": "Канал мониторинга отсека выдачи"
+        }
+      },
+      "additionalProperties": false
+    },
+    "StorageChannelsConfig": {
+      "title": "StorageChannelsConfig",
+      "description": "Каналы полок и ячеек секции",
+      "type": "object",
+      "properties": {
+        "MatrixCtrl": {
+          "type": "string",
+          "description": "Канал управления матрицей ячеек"
+        },
+        "Port": {
+          "type": "array",
+          "description": "Список каналов строк и колонок для матричного управления",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Tamper": {
+          "type": "array",
+          "description": "Список каналов датчиков состояния ячеек",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Monitoring": {
+          "type": "string",
+          "description": "Канал мониторинга ячеек"
+        }
+      },
+      "additionalProperties": false
+    },
+    "LiftChannelsConfig": {
+      "title": "LiftChannelsConfig",
+      "description": "Каналы лифта выдачи товаров",
+      "type": "object",
+      "properties": {
+        "MotorCtrl": {
+          "type": "string",
+          "description": "Канал управления приводом лифта"
+        },
+        "LevelSensor": {
+          "type": "string",
+          "description": "Канал оптического датчика позиционирования уровня лифта"
+        },
+        "BottomTamper": {
+          "type": "string",
+          "description": "Канал нижнего концевика лифта"
+        },
+        "TopTamper": {
+          "type": "string",
+          "description": "Канал верхнего концевика лифта"
+        },
+        "Monitoring": {
+          "type": "string",
+          "description": "Канал мониторинга привода лифта"
+        }
+      },
+      "additionalProperties": false
+    },
+    "LedChannelsConfig": {
+      "title": "LedChannelsConfig",
+      "description": "Каналы управления подсветкой секции",
+      "type": [
+        "object",
+        "string"
+      ],
+      "properties": {
+        "Ctrl": {
+          "type": "string",
+          "description": "Канал управления подсветкой секции"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SectionLiftConfig": {
+      "title": "SectionLiftConfig",
+      "description": "Параметры механизма лифта",
+      "type": "object",
+      "properties": {
+        "MaxLevel": {
+          "type": "number",
+          "description": "Максимальный этаж/уровень лифта"
+        }
+      },
+      "required": [
+        "MaxLevel"
+      ],
+      "additionalProperties": false
+    },
+    "SectionStorageConfig": {
+      "title": "SectionStorageConfig",
+      "description": "Параметры хранилища ячеек",
+      "type": "object",
+      "properties": {
+        "TamperPattern": {
+          "type": "string",
+          "description": "Шаблон имени канала датчиков ячеек"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SectionCellOptsConfig": {
+      "title": "SectionCellOptsConfig",
+      "description": "Параметры адресации строк и колонок ячеек",
+      "type": "object",
+      "properties": {
+        "Row": {
+          "type": "array",
+          "description": "Индексы каналов строк",
+          "items": {
+            "type": "number"
+          }
+        },
+        "Col": {
+          "type": "array",
+          "description": "Индексы каналов колонок",
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "required": [
+        "Row",
+        "Col"
+      ],
+      "additionalProperties": false
     }
   }
 }

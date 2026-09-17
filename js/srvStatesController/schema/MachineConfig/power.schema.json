@@ -135,6 +135,33 @@
         },
         "Field": {
           "$ref": "./field.schema.json#/definitions/FieldRef"
+        },
+        "Channels": {
+          "type": "object",
+          "description": "Каналы мониторинга источника питания",
+          "properties": {
+            "VoltageIn": {
+              "type": "string",
+              "description": "Имя канала входящего напряжения"
+            },
+            "VoltageOut": {
+              "type": "string",
+              "description": "Имя канала выходящего напряжения"
+            },
+            "CurrentOut": {
+              "type": "string",
+              "description": "Имя канала выходящего тока"
+            },
+            "Power": {
+              "type": "string",
+              "description": "Имя канала мощности"
+            },
+            "Temp": {
+              "type": "string",
+              "description": "Имя канала температуры"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
@@ -154,8 +181,9 @@
       "type": "object",
       "properties": {
         "source": {
-          "type": "number",
-          "description": "Индекс источника питания (0 - шина сетевого питания Mains)"
+          "type": "boolean",
+          "default": false,
+          "description": "Флаг первичного сетевого ввода (true - сетевой ввод Mains, false - вторичная шина от источника)"
         },
         "Voltage": {
           "type": [
@@ -173,7 +201,6 @@
         }
       },
       "required": [
-        "source",
         "Voltage",
         "CurrentMax"
       ],

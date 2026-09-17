@@ -38,6 +38,10 @@
           "properties": {
             "IP": {
               "type": "string"
+            },
+            "CpuTempChannel": {
+              "type": "string",
+              "description": "Канал температуры процессора хаба"
             }
           },
           "required": [
@@ -76,15 +80,165 @@
         "High"
       ],
       "additionalProperties": false
+    },
+    "SW": {
+      "type": "object",
+      "description": "Сетевые параметры серверного ПО и сервисов",
+      "properties": {
+        "LOW": {
+          "type": "object",
+          "properties": {
+            "REDIS": {
+              "type": "object",
+              "properties": {
+                "IP": {
+                  "type": "string"
+                },
+                "PORT": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "IP",
+                "PORT"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "REDIS"
+          ],
+          "additionalProperties": false
+        },
+        "MID": {
+          "type": "object",
+          "properties": {
+            "MQTT": {
+              "type": "object",
+              "properties": {
+                "IP": {
+                  "type": "string"
+                },
+                "PORT": {
+                  "type": "string"
+                },
+                "WS_PORT": {
+                  "type": "string"
+                },
+                "CLIENT_URL": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "IP",
+                "PORT",
+                "WS_PORT",
+                "CLIENT_URL"
+              ],
+              "additionalProperties": false
+            },
+            "MONGODB": {
+              "type": "object",
+              "properties": {
+                "IP": {
+                  "type": "string"
+                },
+                "PORT": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "IP",
+                "PORT"
+              ],
+              "additionalProperties": false
+            },
+            "NTP": {
+              "type": "object",
+              "properties": {
+                "IP": {
+                  "type": "string"
+                },
+                "PORT": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "IP",
+                "PORT"
+              ],
+              "additionalProperties": false
+            },
+            "GRAYLOG": {
+              "type": "object",
+              "properties": {
+                "IP": {
+                  "type": "string"
+                },
+                "WEB": {
+                  "type": "object",
+                  "properties": {
+                    "PORT": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "PORT"
+                  ],
+                  "additionalProperties": false
+                },
+                "INPUT": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "PORT": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "PORT"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "URL": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "IP",
+                "WEB",
+                "INPUT",
+                "URL"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "MQTT",
+            "MONGODB",
+            "NTP",
+            "GRAYLOG"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "LOW",
+        "MID"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
     "Common",
     "Router",
     "Switch",
-    "Hub"
+    "Hub",
+    "SW"
   ],
-  "additionalProperties": true,
+  "additionalProperties": false,
   "definitions": {
     "WAN_MODE": {
       "title": "WAN_MODE",
@@ -227,21 +381,23 @@
           "type": "string",
           "description": "Обозначение коммутатора на монтажной схеме"
         },
+        "Model": {
+          "type": "string",
+          "description": "Модель коммутатора"
+        },
+        "PortsTotal": {
+          "type": "number",
+          "description": "Общее количество портов коммутатора"
+        },
         "Power": {
           "$ref": "#/definitions/NetPowerDeviceConfig"
-        },
-        "port": {
-          "type": "array",
-          "description": "Список портов коммутатора",
-          "items": {
-            "$ref": "#/definitions/NetPortConfig"
-          }
         }
       },
       "required": [
         "RefDes",
-        "Power",
-        "port"
+        "Model",
+        "PortsTotal",
+        "Power"
       ],
       "additionalProperties": false
     }
