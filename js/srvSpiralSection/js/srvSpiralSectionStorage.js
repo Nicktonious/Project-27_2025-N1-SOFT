@@ -285,6 +285,9 @@ class ClassSpiralSectionStorage {
                     if (this.#_SectionState.Cells[index].Status != SPIRAL_CELL_STATE.ACTUATOR_SHORT_CIRCUIT) {
                         this._ProxyLogger.Log({ level: 'E', msg: `[STORAGE] Мониторинг зафиксировал КЗ. Ток: ${I_curr}` });
                             this.#_FSM.Dispatch(this.EVENTS.FAULT, new StorageFault({ code: FAULTS.ACTUATOR_SHORT_CIRCUIT, index }));
+                    } else {
+                        // Повторно записываем статус, чтобы обновить время последнего изменения но не запускаем реакцию
+                        this.#_SectionState.Cells[index].Status = SPIRAL_CELL_STATE.ACTUATOR_SHORT_CIRCUIT;
                     }
                     break;
 
@@ -358,6 +361,7 @@ class ClassSpiralSectionStorage {
             this.#_Context.dispenseTimer?.clear();
             this._ProxyLogger.Log({ level: 'D', msg: `[STORAGE] Сброс таймера (361)` });
             this.#_Polling = false;
+            this.#_ProxyCh.SetValue(this.#_Channels.monSpirals, { Cell: this.PosToInd(unitInUse.coords), Rots: itemsDispensed });
             this.#_FSM.Dispatch(this.EVENTS.COMPLETED, { index: indexInUse, itemsDispensed, itemsRequested });
         } else {
             this.#_Context.dispenseTimer?.reset();
@@ -390,7 +394,6 @@ class ClassSpiralSectionStorage {
      * @param {StorageFault} fault 
      */
     async OnFault(fault) {
-        console.log(`onfa ${fault.code}`);
         this.#_Context.dispenseTimer?.clear?.();
         this._ProxyLogger.Log({ level: 'I', msg: `[STORAGE] Fault: ${fault}`, obj: fault });
         this.UpdateStatus(fault);
@@ -871,7 +874,7 @@ class ClassSpiralSectionStorage {
 
         let current_1 = this.#_ProxyCh.GetValue(this.#_Channels.current);
         if (!isIdle && isWithinTolerance(current_0, current_1, 0.1)) {
-            this._ProxyLogger.Log({ level: 'E', msg: `[STORAGE] index ${index} error: Source switch broken`, obj: { index } });
+            this._ProxyLogger.Log({ level: 'E', msg: `[STORAGE] index ${index} error: Source switch broken (${current_0?.toFixed?.(2)} -> ${current_1?.toFixed?.(2)})` });
             throw new StorageFault({ code: FAULTS.ACTUATOR_SHORT_CIRCUIT, index });
         }
 
