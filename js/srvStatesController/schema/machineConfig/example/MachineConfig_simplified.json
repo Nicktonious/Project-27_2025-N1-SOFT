@@ -1,0 +1,434 @@
+{
+  "Global": {
+    "ID": "Machine-1",
+    "Model": "27/2025-N1-МАС",
+    "StartDate": "2026-08-04"
+  },
+  "Power": {
+    "Mains": {
+      "Voltage": 230,
+      "VoltageMin": 170,
+      "VoltageMax": 250,
+      "PowerMax": 200
+    },
+    "PSU": [
+      {
+        "RefDes": "PWR3",
+        "Model": "MDR-60-24",
+        "Bus": 1,
+        "VoltageIn": 230,
+        "VoltageOut": 24,
+        "CurrentMax": 2.5,
+        "Field": {
+          "ref": "ICP-CON2/com1",
+          "ID": "3"
+        }
+      },
+      {
+        "RefDes": "DRS2",
+        "Model": "DRS-240-12",
+        "Bus": 2,
+        "VoltageIn": 230,
+        "VoltageOut": 12,
+        "CurrentMax": 20,
+        "Battery": {
+          "Model": "DRS-BAT-12",
+          "type": "lead",
+          "Voltage": 12,
+          "Capacity": 12
+        },
+        "Field": {
+          "ref": "icpdas1/com2",
+          "ID": "131"
+        }
+      },
+      {
+        "RefDes": "DRS3",
+        "Model": "DRS-240-24",
+        "Bus": 3,
+        "VoltageIn": 230,
+        "VoltageOut": 24,
+        "CurrentMax": 10,
+        "Field": {
+          "ref": "icpdas1/com1",
+          "ID": "131"
+        }
+      },
+      {
+        "RefDes": "PWR1",
+        "Model": "NLS-6012",
+        "Bus": 4,
+        "VoltageIn": 230,
+        "VoltageOut": 12,
+        "CurrentMax": 5,
+        "Field": {
+          "ref": "ICP-CON2/com1",
+          "ID": "3"
+        }
+      },
+      {
+        "RefDes": "UPS1",
+        "Model": "WB-UPS v.3",
+        "Bus": 1,
+        "VoltageIn": 24,
+        "VoltageOut": 24,
+        "CurrentMax": 10,
+        "Battery": {
+          "Model": "WB-BAT",
+          "type": "lipo",
+          "Voltage": 24,
+          "Capacity": 2.5
+        },
+        "Field": {
+          "ref": "ICP-CON2/COM2",
+          "ID": "64"
+        }
+      },
+      {
+        "RefDes": "UPS2",
+        "Model": "WB-UPS v.3",
+        "Bus": 1,
+        "VoltageIn": 24,
+        "VoltageOut": 24,
+        "CurrentMax": 10,
+        "Battery": {
+          "Model": "WB-BAT",
+          "type": "lipo",
+          "Voltage": 24,
+          "Capacity": 2.5
+        },
+        "Field": {
+          "ref": "ICP-CON2/COM2",
+          "ID": "65"
+        }
+      }
+    ],
+    "Bus": [
+      {
+        "source": 0,
+        "Voltage": 230,
+        "CurrentMax": 10
+      },
+      {
+        "source": 1,
+        "Voltage": 24,
+        "CurrentMax": 10
+      },
+      {
+        "source": 2,
+        "Voltage": 12,
+        "CurrentMax": 20
+      },
+      {
+        "source": 3,
+        "Voltage": 24,
+        "CurrentMax": 10
+      },
+      {
+        "source": 4,
+        "Voltage": 12,
+        "CurrentMax": 20
+      }
+    ]
+  },
+  "Env": {
+    "Temp": [
+      {
+        "RefDes": "DVT-HYGROMETER",
+        "Model": "DVT-HYGROMETER",
+        "Min": 0,
+        "Max": 40,
+        "Field": {
+          "ref": "hubLow/PORT3",
+          "ID": "128"
+        }
+      }
+    ],
+    "Hum": [
+      {
+        "RefDes": "DVT-HYGROMETER",
+        "Model": "DVT-HYGROMETER",
+        "Min": 10,
+        "Max": 80,
+        "Field": {
+          "ref": "hubLow/PORT3",
+          "ID": "128"
+        }
+      }
+    ]
+  },
+  "Net": {
+    "Common": {
+      "mask": "255.255.255.0",
+      "gw": "10.130.1.254"
+    },
+    "Router": {
+      "RefDes": "ROUTER1",
+      "Power": {
+        "Bus": 0,
+        "Voltage": 230,
+        "CurrentMax": 0.5,
+        "Power": 15
+      },
+      "WAN": {
+        "name": "wan1",
+        "mode": "static",
+        "ip": "10.123.45.67",
+        "mask": "255.255.255.0",
+        "gw": "10.123.45.1",
+        "dns": [
+          "10.123.45.1"
+        ]
+      },
+      "port": [
+        {
+          "name": "lan1",
+          "poe": false
+        },
+        {
+          "name": "lan2",
+          "poe": false
+        }
+      ]
+    },
+    "Switch": {
+      "RefDes": "SWITCH1",
+      "Power": {
+        "Bus": 0,
+        "Voltage": 230,
+        "CurrentMax": 1,
+        "Power": 30
+      },
+      "port": [
+        {
+          "name": "port1",
+          "poe": true
+        },
+        {
+          "name": "port2",
+          "poe": true
+        },
+        {
+          "name": "port3",
+          "poe": true
+        },
+        {
+          "name": "port4",
+          "poe": false
+        },
+        {
+          "name": "port5",
+          "poe": false
+        },
+        {
+          "name": "port6",
+          "poe": false
+        },
+        {
+          "name": "port7",
+          "poe": false
+        },
+        {
+          "name": "port8",
+          "poe": false
+        },
+        {
+          "name": "port9",
+          "poe": false
+        },
+        {
+          "name": "port10",
+          "poe": false
+        }
+      ]
+    },
+    "Hub": {
+      "Low": {
+        "IP": "10.130.1.11"
+      },
+      "Mid": {
+        "IP": "10.130.1.12"
+      },
+      "High": {
+        "IP": "10.130.1.13"
+      }
+    },
+    "SW": {
+      "LOW": {
+        "REDIS": {
+          "IP": "10.130.1.11",
+          "PORT": "6379"
+        }
+      },
+      "MID": {
+        "MQTT": {
+          "IP": "10.130.1.12",
+          "PORT": "1883",
+          "WS_PORT": "9001",
+          "CLIENT_URL": "http://10.130.1.12:8333"
+        },
+        "MONGODB": {
+          "IP": "10.130.1.12",
+          "PORT": "27017"
+        },
+        "NTP": {
+          "IP": "10.130.1.12",
+          "PORT": "123"
+        },
+        "GRAYLOG": {
+          "IP": "10.130.1.12",
+          "WEB": {
+            "PORT": 9000
+          },
+          "INPUT": [
+            {
+              "PORT": 12201
+            },
+            {
+              "PORT": 12202
+            },
+            {
+              "PORT": 12203
+            }
+          ],
+          "URL": "http://10.130.1.12:9000"
+        }
+      }
+    }
+  },
+  "Field": {
+    "RS485": [
+      {
+        "RefDes": "RS485-1",
+        "Master": "hubLow",
+        "Port": "PORT1",
+        "Baud": 9600
+      },
+      {
+        "RefDes": "RS485-2",
+        "Master": "hubLow",
+        "Port": "PORT2",
+        "Baud": 9600
+      },
+      {
+        "RefDes": "RS485-3",
+        "Master": "hubLow",
+        "Port": "PORT3",
+        "Baud": 9600
+      },
+      {
+        "RefDes": "RS485-4",
+        "Master": "icpdas1",
+        "Port": "com1",
+        "Baud": 115200
+      },
+      {
+        "RefDes": "RS485-5",
+        "Master": "icpdas1",
+        "Port": "com2",
+        "Baud": 115200
+      },
+      {
+        "RefDes": "RS485-6",
+        "Master": "icpdas1",
+        "Port": "com3",
+        "Baud": 9600
+      },
+      {
+        "RefDes": "RS485-7",
+        "Master": "ICP-CON2",
+        "Port": "com1",
+        "Baud": 9600
+      },
+      {
+        "RefDes": "RS485-8",
+        "Master": "ICP-CON2",
+        "Port": "com2",
+        "Baud": 9600
+      },
+      {
+        "RefDes": "RS485-9",
+        "Master": "ICP-CON2",
+        "Port": "com3",
+        "Baud": 9600
+      }
+    ],
+    "CAN": [],
+    "TCP": []
+  },
+  "IO": [
+    {
+      "RefDes": "IO-1.1-SPIRAL-ROW",
+      "Model": "KinCony KC868-A16",
+      "Field": {
+        "ref": "hubLow/PORT1",
+        "ID": "41"
+      },
+      "Net": {
+        "IP": "10.130.1.41",
+        "Web": 80
+      }
+    },
+    {
+      "RefDes": "IO-1.2-SPIRAL-COL",
+      "Model": "KinCony KC868-A16",
+      "Field": {
+        "ref": "hubLow/PORT2",
+        "ID": "42"
+      },
+      "Net": {
+        "IP": "10.130.1.42",
+        "Web": 80
+      }
+    },
+    {
+      "RefDes": "IO-2.1-POST-ROW",
+      "Model": "KinCony KC868-A16",
+      "Field": {
+        "ref": "ICP-CON2/com3",
+        "ID": "43"
+      },
+      "Net": {
+        "IP": "10.130.1.43",
+        "Web": 80
+      }
+    },
+    {
+      "RefDes": "IO-2.2-POST-COL",
+      "Model": "KinCony KC868-A16",
+      "Field": {
+        "ref": "ICP-CON2/com3",
+        "ID": "44"
+      },
+      "Net": {
+        "IP": "10.130.1.44",
+        "Web": 80
+      }
+    }
+  ],
+  "Camera": [],
+  "Sections": [
+    {
+      "Name": "Machine-1-spiral",
+      "ID": "0",
+      "Type": "SPIRAL",
+      "Rows": 8,
+      "Cols": 12,
+      "IOList": [
+        "IO-1.1-SPIRAL-ROW",
+        "IO-1.2-SPIRAL-COL"
+      ]
+    },
+    {
+      "Name": "Machine-1-postomat",
+      "ID": "1",
+      "Type": "POST",
+      "Rows": 10,
+      "Cols": 5,
+      "IOList": [
+        "IO-2.1-POST-ROW",
+        "IO-2.2-POST-COL"
+      ]
+    }
+  ]
+}
