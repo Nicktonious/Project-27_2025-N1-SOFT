@@ -31,7 +31,7 @@ import {
     AVAILABLE_STATE
 } from "../ts/IGlobalStates";
 import { GlobalMonitoring } from "../ts/IGlobalMonitoring";
-import { MachineConfig, SectionConfig } from "../ts/IMachineConfig";
+import { MachineConfig, SECTION_TYPE, SectionConfig } from "../ts/IMachineConfig";
 import { createReactiveState } from "./srvReactiveProxy";
 
 export interface IPortService extends EventEmitter2 {
@@ -243,18 +243,24 @@ class StatesController<TSection extends BaseSectionState<any> = BaseSectionState
                         OVTcount: 0
                     }
                 })),
-                Sections: (opts.sections ?? []).map((sec) => ({
+                Sections: (/*opts.sections*/ config.Sections ?? []).map((sec) => ({
                     Name: sec.Name || 'Unknown',
                     Uptime: { Hours: 0, Cycles: 0, Nominal: 100000 },
-                    Rows: Array.from({ length: sec.Rows?.length || 0 }, () => ({
+                    /*Rows: Array.from({ length: sec.Rows?.length || 0 }, () => ({
                         Uptime: { Hours: 0, Cycles: 0, Nominal: 100000 }
                     })),
                     Cols: Array.from({ length: sec.Cols?.length || 0 }, () => ({
                         Uptime: { Hours: 0, Cycles: 0, Nominal: 100000 }
-                    })),
-                    Cells: Array.from({ length: sec.Cells?.length || 0 }, () => ({
+                    })),*/
+                    Cells: Array.from({ length: sec.Rows * sec.Cols || 0 }, () => ({
                         Uptime: { Hours: 0, Cycles: 0, Nominal: 100000 }
-                    }))
+                    })),
+                    Lift: sec.Type == SECTION_TYPE.SPIRAL ? {
+                        Uptime: { Hours: 0, Cycles: 0, Nominal: 100000 }
+                    } : undefined,
+                    DeliveryBox: sec.Type == SECTION_TYPE.SPIRAL ? {
+                        Uptime: { Hours: 0, Cycles: 0, Nominal: 100000 }
+                    } : undefined
                 }))
             },
             Config: config
