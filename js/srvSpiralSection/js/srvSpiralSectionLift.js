@@ -1,5 +1,5 @@
 const { EventEmitter2 } = require("eventemitter2");
-const { createTimer, ClassFault: Fault, isWithinTolerance } = require("./srvUtils");
+const { createTimer, ClassFault: Fault, isWithinTolerance, BufferedCsvWriter } = require("./srvUtils");
 const { ClassFSM: FSM } = require("./srvFSM");
 const { LIFT_CONSTANTS, FAULTS, STORAGE_CONSTANSTS, U_TRANSACTIONS, COMMON_CONSTANTS } = require("./SpiralSectionConstants");
 const { /*LIFT_STATE,*/ default: SpiralSectionState } = require("./srvSpiralSectionStates");
@@ -248,6 +248,9 @@ class ClassSpiralSectionLift {
                     this.#_Context.currentLevel--;
 
                 this._ProxyLogger.Log({ level: 'D', msg: `[LIFT] Уровень лифта: ${this.#_Context.currentLevel}` });
+                
+                this.#_ProxyCh.SetValue(this.#_Channels.monLift, 0.15);
+                
                 if (this.#_Context.currentLevel == this.#_Context.requiredLevel) {  
                     this.#_Context.timer?.clear();
 
@@ -313,7 +316,7 @@ class ClassSpiralSectionLift {
         
                     break;
 
-                /*case ELECTR_CURR_STATE.IDLE:
+                case ELECTR_CURR_STATE.IDLE:
                     if (this.#_SectionState.Cells[index] != LIFT_STATE.SHORT_CIRCUIT) {
                         if (++this.nopower_count == 3) {
                             this.nopower_count = 0;
@@ -321,7 +324,7 @@ class ClassSpiralSectionLift {
                             this.#_FSM.Dispatch(this.EVENTS.FAULT, new Fault({ code: FAULTS.ACTUATOR_NO_POWER, index }));
                         }
                     }
-                    break;*/
+                    break;
 
                 case ELECTR_CURR_STATE.WORK_OK:
                     this.#_SectionState.Lift = LIFT_STATE.OK;
@@ -768,6 +771,32 @@ class ClassSpiralSectionLift {
             this.#_Context.currentTask.rej(new Error('Reset'));
         }
         this.#_Context.currentTask = null;
+    }
+
+    async Test_1(fpath, level, times) {
+        let writer = new BufferedCsvWriter(fpath);
+        await this.ElevateToBottom();
+        let state = 'b';
+        let I_interv = setInterval(() => {
+            let I = this.#_ProxyCh.GetValue(this.#_Channels.current);
+            let t = new Date().getTime();
+            writer.write([t, state, I]);
+        }, 100);
+        while (times--) {
+            state = 'u';
+            try {
+                await this.ElevateToLevel(level);
+            } catch {
+                break
+            }
+            state = 'd';
+            try {
+                await this.ElevateToBottom();
+            } catch {
+                break
+            }
+        }
+        writer.close();
     }
 }
 
