@@ -68,9 +68,9 @@ export function createReactiveState<T extends object>(
             const oldValue = Reflect.get(obj, prop, receiver);
 
             // Игнорируем запись, если значение не изменилось (Deep equality не требуется по ТЗ, достаточно ===)
-            if (oldValue === newValue) {
+            /*if (oldValue === newValue) {
                 return true;
-            }
+            }*/
 
             // Применяем изменение к оригинальному объекту
             const result = Reflect.set(obj, prop, newValue, receiver);
