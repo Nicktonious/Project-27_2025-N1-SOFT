@@ -75,6 +75,9 @@ class ClassSpiralSection extends EventEmitter2 {
         this.#_Storage = new ClassSpiralSectionStorage({ ProxyCh, ProxyLogger, channels: channels.storageChannels, advOpts: advOpts.storageOpts, sectionState });
         this.#_Box = new ClassDeliveryBox({ ProxyCh, ProxyLogger, channels: channels.boxChannels, advOpts: {}, sectionState });
         this.#_Channels.door = channels.door;
+        this.#_Channels.monSpirals = channels.monSpirals;
+        this.#_Channels.monLift = channels.monLift;
+        this.#_Channels.monBox = channels.monBox;
         this.#_SectionState = sectionState;
         this.Init();
     }
@@ -134,6 +137,7 @@ class ClassSpiralSection extends EventEmitter2 {
 
     WatchBox() {
         this.#_Box.on(ClassDeliveryBox.EVENTS.OPENED, (() => {
+            this.#_ProxyCh.SetValue(this.#_Channels.monBox, 1);
             this.Abort();
         }).bind(this));
     }
@@ -362,7 +366,11 @@ class ClassSpiralSection extends EventEmitter2 {
         return quantity
                 ? this.#_Storage.Dispense({ row, column, quantity }, true)
                 : this.#_Storage.RunMotor({ row, column, duration }); 
-    }       
+    }    
+    
+    Test_1(fpath, level, times) {
+        return this.#_Lift.Test_1(fpath, level, times);
+    }
 }
 
 module.exports = { ClassSpiralSection };
