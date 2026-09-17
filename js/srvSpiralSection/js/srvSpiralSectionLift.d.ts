@@ -8,6 +8,7 @@ export interface TypeSpiralSectionLiftChannels {
     voltage: string;
     short: string;
     psuWork: string;
+    monLift: string;
 }
 
 export interface TypeSpiralSectionLiftOpts {
