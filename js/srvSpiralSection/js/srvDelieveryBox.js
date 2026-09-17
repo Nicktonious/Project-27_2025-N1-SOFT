@@ -6,6 +6,8 @@ const { default: SpiralSectionState } = require('./srvSpiralSectionStates');
 const { DELIVERY_BOX_STATE } = require('../../srvStatesController/ts/ISpiralSectionStates');
 const { EventEmitter2 } = require('eventemitter2');
 
+const DOOR_DEBOUNCE_MS = BOX_CONSTANTS.DOOR_DEBOUNCE ?? 300;
+
 class ClassDeliveryBox extends EventEmitter2 {
 
     static STATE = {
@@ -65,6 +67,9 @@ class ClassDeliveryBox extends EventEmitter2 {
     #_Channels = null;
     #_Context = {};
     #_DoorHandlers = new Map();
+    keepOpened = null;
+    _debounceTimer = null;
+
     /**
      * @param {object} param0
      * @param {TypeProxyCh} param0.ProxyCh
@@ -98,9 +103,15 @@ class ClassDeliveryBox extends EventEmitter2 {
         this.InitEventHandlers();
     }
 
+    get IsLockOpen() {
+        if (!this.#_Channels?.lock)
+            return false;
+        return this.#_ProxyCh.GetValue(this.#_Channels.lock) == BOX_CONSTANTS.UNLOCK_ON;
+    }
+
     get IsOpened() {
-        return this.#_ProxyCh.GetValue(this.#_Channels.optic) != BOX_CONSTANTS.BOX_CLOSED;
-        // return this.#_FSM.State == ClassDeliveryBox.STATE.OPENED;
+        const isDoorOpened = this.#_ProxyCh.GetValue(this.#_Channels.optic) != BOX_CONSTANTS.BOX_CLOSED;
+        return isDoorOpened || this.IsLockOpen;
     }
 
     async Deliver() {
@@ -119,6 +130,11 @@ class ClassDeliveryBox extends EventEmitter2 {
     }
 
     _Unlock() {
+        if (this.keepOpened) {
+            clearTimeout(this.keepOpened);
+            this.keepOpened = null;
+        }
+
         this.SetLockState(BOX_CONSTANTS.UNLOCK_ON);
 
         this.#_Context.openTimer = setTimeout(() => {
@@ -129,23 +145,35 @@ class ClassDeliveryBox extends EventEmitter2 {
     }
 
     OnDoorOpened() {
+        if (this.keepOpened) {
+            clearTimeout(this.keepOpened);
+            this.keepOpened = null;
+        }
+
         if (this.#_Context.openTimer)
             clearTimeout(this.#_Context.openTimer);
-
+        
         this.#_Context.openTimer = null;
     }
 
     FinishDelivery() {
-        this.keepOpened = setTimeout(
-            () => this.SetLockState(BOX_CONSTANTS.UNLOCK_OFF), 
-            BOX_CONSTANTS.UNLOCKED_TIMEOUT_SEC / 2 * 1000);
-    
+        if (this.keepOpened) {
+            clearTimeout(this.keepOpened);
+            this.keepOpened = null;
+        }
+
+        this.SetLockState(BOX_CONSTANTS.UNLOCK_OFF);
+
         this.#_Context.currentTask?.res();
         this.#_Context.currentTask = null;
     }
 
     AbortDelivery() {
         this._ProxyLogger.Log({ level: 'I', msg: `[BOX] Таймаут выдачи` });
+        if (this.keepOpened) {
+            clearTimeout(this.keepOpened);
+            this.keepOpened = null;
+        }
         this.SetLockState(BOX_CONSTANTS.UNLOCK_OFF);
 
         this.#_Context.currentTask?.rej(new Error('Лючок не был открыт'));
@@ -161,33 +189,41 @@ class ClassDeliveryBox extends EventEmitter2 {
 
     InitEventHandlers() {
         let cachedDoorValue = undefined;
-        const handler = (({ Value }) => {
 
+        const handler = (({ Value }) => {
             if (Value === cachedDoorValue)
                 return;
 
-            cachedDoorValue = Value;
-
-            switch (this.#_FSM.State) {
-
-                case ClassDeliveryBox.STATE.CLOSED:
-                case ClassDeliveryBox.STATE.UNLOCKING:
-
-                    if (Value != BOX_CONSTANTS.BOX_CLOSED) {
-                        this.emit(ClassDeliveryBox.EVENTS.OPENED);
-                        this.#_FSM.Dispatch(ClassDeliveryBox.EVENTS.OPENED);
-                    }
-                    break;
-
-                case ClassDeliveryBox.STATE.OPENED:
-
-                    if (Value == BOX_CONSTANTS.BOX_CLOSED) {
-                        this.emit(ClassDeliveryBox.EVENTS.CLOSED);
-                        this.#_FSM.Dispatch(ClassDeliveryBox.EVENTS.CLOSED);
-                    }
-
-                    break;
+            if (this._debounceTimer) {
+                clearTimeout(this._debounceTimer);
+                this._debounceTimer = null;
             }
+
+            this._debounceTimer = setTimeout(() => {
+                this._debounceTimer = null;
+
+                if (Value === cachedDoorValue)
+                    return;
+
+                cachedDoorValue = Value;
+
+                switch (this.#_FSM.State) {
+                    case ClassDeliveryBox.STATE.CLOSED:
+                    case ClassDeliveryBox.STATE.UNLOCKING:
+                        if (Value != BOX_CONSTANTS.BOX_CLOSED) {
+                            this.emit(ClassDeliveryBox.EVENTS.OPENED);
+                            this.#_FSM.Dispatch(ClassDeliveryBox.EVENTS.OPENED);
+                        }
+                        break;
+
+                    case ClassDeliveryBox.STATE.OPENED:
+                        if (Value == BOX_CONSTANTS.BOX_CLOSED) {
+                            this.emit(ClassDeliveryBox.EVENTS.CLOSED);
+                            this.#_FSM.Dispatch(ClassDeliveryBox.EVENTS.CLOSED);
+                        }
+                        break;
+                }
+            }, DOOR_DEBOUNCE_MS);
         }).bind(this);
 
         const eventName = `${this.#_Channels.optic}-value`;
@@ -205,6 +241,11 @@ class ClassDeliveryBox extends EventEmitter2 {
         if (this.keepOpened) {
             clearTimeout(this.keepOpened);
             this.keepOpened = null;
+        }
+
+        if (this._debounceTimer) {
+            clearTimeout(this._debounceTimer);
+            this._debounceTimer = null;
         }
 
         this.#_Context.openTimer = null;
