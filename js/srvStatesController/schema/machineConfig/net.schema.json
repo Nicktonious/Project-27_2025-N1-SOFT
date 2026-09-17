@@ -1,0 +1,249 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NetConfig",
+  "description": "Сетевые настройки оборудования и сервисов ПО",
+  "type": "object",
+  "properties": {
+    "Common": {
+      "type": "object",
+      "description": "Общие сетевые параметры",
+      "properties": {
+        "mask": {
+          "type": "string",
+          "description": "Сетевая маска (например, '255.255.255.0')"
+        },
+        "gw": {
+          "type": "string",
+          "description": "Сетевой шлюз"
+        }
+      },
+      "required": [
+        "mask",
+        "gw"
+      ],
+      "additionalProperties": false
+    },
+    "Router": {
+      "$ref": "#/definitions/RouterConfig"
+    },
+    "Switch": {
+      "$ref": "#/definitions/SwitchConfig"
+    },
+    "Hub": {
+      "type": "object",
+      "description": "IP-адреса управляющих микрокомпьютеров (хабов)",
+      "properties": {
+        "Low": {
+          "type": "object",
+          "properties": {
+            "IP": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "IP"
+          ],
+          "additionalProperties": false
+        },
+        "Mid": {
+          "type": "object",
+          "properties": {
+            "IP": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "IP"
+          ],
+          "additionalProperties": false
+        },
+        "High": {
+          "type": "object",
+          "properties": {
+            "IP": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "IP"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "Low",
+        "Mid",
+        "High"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "Common",
+    "Router",
+    "Switch",
+    "Hub"
+  ],
+  "additionalProperties": true,
+  "definitions": {
+    "WAN_MODE": {
+      "title": "WAN_MODE",
+      "description": "Режим работы WAN-порта (static - статический IP, dhcp - динамический IP)",
+      "type": "string",
+      "enum": [
+        "static",
+        "dhcp"
+      ],
+      "tsEnumNames": [
+        "STATIC",
+        "DHCP"
+      ]
+    },
+    "NetPowerDeviceConfig": {
+      "title": "NetPowerDeviceConfig",
+      "description": "Параметры электропитания сетевого устройства",
+      "type": "object",
+      "properties": {
+        "Bus": {
+          "type": "number",
+          "description": "Номер шины электропитания"
+        },
+        "Voltage": {
+          "type": "number",
+          "description": "Напряжение электропитания, В"
+        },
+        "CurrentMax": {
+          "type": "number",
+          "description": "Максимальный потребляемый ток, А"
+        },
+        "Power": {
+          "type": "number",
+          "description": "Мощность потребления, Вт"
+        }
+      },
+      "required": [
+        "Bus",
+        "Voltage",
+        "CurrentMax",
+        "Power"
+      ],
+      "additionalProperties": false
+    },
+    "NetPortConfig": {
+      "title": "NetPortConfig",
+      "description": "Параметры порта сетевого устройства",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Имя порта"
+        },
+        "poe": {
+          "type": "boolean",
+          "description": "Флаг наличия/активности PoE"
+        }
+      },
+      "required": [
+        "name",
+        "poe"
+      ],
+      "additionalProperties": false
+    },
+    "WanConfig": {
+      "title": "WanConfig",
+      "description": "Конфигурация внешнего сетевого интерфейса (WAN)",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Имя uplink-порта"
+        },
+        "mode": {
+          "$ref": "#/definitions/WAN_MODE"
+        },
+        "ip": {
+          "type": "string",
+          "description": "IP-адрес (для static режима)"
+        },
+        "mask": {
+          "type": "string",
+          "description": "Сетевая маска (для static режима)"
+        },
+        "gw": {
+          "type": "string",
+          "description": "Шлюз (для static режима)"
+        },
+        "dns": {
+          "type": "array",
+          "description": "Список IP-адресов DNS-серверов",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "mode"
+      ],
+      "additionalProperties": false
+    },
+    "RouterConfig": {
+      "title": "RouterConfig",
+      "description": "Конфигурация сетевого роутера",
+      "type": "object",
+      "properties": {
+        "RefDes": {
+          "type": "string",
+          "description": "Обозначение роутера на монтажной схеме"
+        },
+        "Power": {
+          "$ref": "#/definitions/NetPowerDeviceConfig"
+        },
+        "WAN": {
+          "$ref": "#/definitions/WanConfig"
+        },
+        "port": {
+          "type": "array",
+          "description": "Список портов роутера",
+          "items": {
+            "$ref": "#/definitions/NetPortConfig"
+          }
+        }
+      },
+      "required": [
+        "RefDes",
+        "Power",
+        "WAN",
+        "port"
+      ],
+      "additionalProperties": false
+    },
+    "SwitchConfig": {
+      "title": "SwitchConfig",
+      "description": "Конфигурация сетевого коммутатора",
+      "type": "object",
+      "properties": {
+        "RefDes": {
+          "type": "string",
+          "description": "Обозначение коммутатора на монтажной схеме"
+        },
+        "Power": {
+          "$ref": "#/definitions/NetPowerDeviceConfig"
+        },
+        "port": {
+          "type": "array",
+          "description": "Список портов коммутатора",
+          "items": {
+            "$ref": "#/definitions/NetPortConfig"
+          }
+        }
+      },
+      "required": [
+        "RefDes",
+        "Power",
+        "port"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

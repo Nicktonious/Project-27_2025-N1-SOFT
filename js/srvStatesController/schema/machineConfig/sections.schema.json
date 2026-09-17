@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SectionConfig",
+  "description": "Конфигурация отдельной секции аппарата",
+  "type": "object",
+  "properties": {
+    "Name": {
+      "type": "string",
+      "description": "Уникальное имя секции (например, 'spiral', 'postomat')"
+    },
+    "ID": {
+      "type": "string",
+      "description": "Идентификатор секции (UUID)"
+    },
+    "Type": {
+      "$ref": "#/definitions/SECTION_TYPE"
+    },
+    "Rows": {
+      "type": "number",
+      "description": "Число полок в секции"
+    },
+    "Cols": {
+      "type": "number",
+      "description": "Число ячеек на полке"
+    },
+    "IOList": {
+      "type": "array",
+      "description": "Массив имён модулей ввода-вывода (IO), закреплённых за данной секцией",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "Name",
+    "ID",
+    "Type",
+    "Rows",
+    "Cols",
+    "IOList"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "SECTION_TYPE": {
+      "title": "SECTION_TYPE",
+      "description": "Тип секции вендингового аппарата (POST - постомат, SPIRAL - спиральная секция, WEIGHT - весовая секция приёма лома, DOZER - диспенсер сыпучих/жидких материалов)",
+      "type": "string",
+      "enum": [
+        "POST",
+        "SPIRAL",
+        "WEIGHT",
+        "DOZER"
+      ],
+      "tsEnumNames": [
+        "POST",
+        "SPIRAL",
+        "WEIGHT",
+        "DOZER"
+      ]
+    }
+  }
+}

@@ -10,83 +10,16 @@
       "type": "object",
       "properties": {
         "Lift": {
-          "$ref": "#/definitions/LIFT_STATE"
-        },
-        "LiftTrap": {
-          "$ref": "./base_section_states.schema.json#/definitions/DOOR_STATE"
+          "$ref": "#/definitions/LiftState"
         },
         "DeliveryBox": {
-          "$ref": "#/definitions/DELIVERY_BOX_STATE"
-        },
-        "Cells": {
-          "type": "array",
-          "description": "Массив состояний ячеек спиральной секции",
-          "items": {
-            "$ref": "#/definitions/TYPE_SPIRAL_CELL"
-          }
+          "$ref": "#/definitions/DeliveryBoxState"
         }
       },
       "required": ["Lift", "DeliveryBox"]
     }
   ],
   "definitions": {
-    "TYPE_SPIRAL_CELL": {
-      "title": "TYPE_SPIRAL_CELL",
-      "description": "Объект состояния ячейки спиральной секции (Status, Action)",
-      "type": "object",
-      "properties": {
-        "Status": {
-          "anyOf": [
-            { "$ref": "#/definitions/SPIRAL_CELL_STATE" },
-            { "$ref": "./base_section_states.schema.json#/definitions/CELL_STATE" }
-          ]
-        },
-        "Action": {
-          "$ref": "./base_section_states.schema.json#/definitions/CELL_ACTION"
-        }
-      },
-      "required": ["Status", "Action"],
-      "additionalProperties": false
-    },
-    "SPIRAL_CELL_STATE": {
-      "title": "SPIRAL_CELL_STATE",
-      "description": "Флаги состояния ячейки спиральной секции (OK - в норме, OPENING - открывается, OVERLOAD_I - повышенный ток, OVERLOAD_V - повышенное напряжение, BLOCKED - заблокирована, ERROR - ошибка, SERVICE - обслуживание, ERR_TAMPER - ошибка тампера, ERR_TAMPER_BAD_POS - некорректная позиция, ACTUATOR_SHORT_CIRCUIT - КЗ актуатора, ACTUATOR_NO_POWER - нет питания, ERR_MECHANICAL - механическая поломка, OVERLOAD - перегрузка, TAMPER_BAD_POS_ERROR - ошибка начального положения тампера, NOT_CLOSED - ячейка открыта слишком долго)",
-      "type": "string",
-      "enum": [
-        "OK",
-        "OPENING",
-        "OVERLOAD_I",
-        "OVERLOAD_V",
-        "BLOCKED",
-        "ERROR",
-        "SERVICE",
-        "ERR_TAMPER",
-        "ERR_TAMPER_BAD_POS",
-        "ACTUATOR_SHORT_CIRCUIT",
-        "ACTUATOR_NO_POWER",
-        "ERR_MECHANICAL",
-        "OVERLOAD",
-        "TAMPER_BAD_POS_ERROR",
-        "NOT_CLOSED"
-      ],
-      "tsEnumNames": [
-        "OK",
-        "OPENING",
-        "OVERLOAD_I",
-        "OVERLOAD_V",
-        "BLOCKED",
-        "ERROR",
-        "SERVICE",
-        "ERR_TAMPER",
-        "ERR_TAMPER_BAD_POS",
-        "ACTUATOR_SHORT_CIRCUIT",
-        "ACTUATOR_NO_POWER",
-        "ERR_MECHANICAL",
-        "OVERLOAD",
-        "TAMPER_BAD_POS_ERROR",
-        "NOT_CLOSED"
-      ]
-    },
     "LIFT_STATE": {
       "title": "LIFT_STATE",
       "description": "Флаги состояния лифта (OK - в норме, OVERLOAD - перегрузка, BLOCKED - недоступен, SHORT_CIRCUIT - короткое замыкание, NO_POWER - отсутствует питание, ERR_TAMPER - тампер вышел из строя, ERR_LEVEL - неисправен датчик уровня, ERR_MECHANICAL - механическая поломка)",
@@ -112,12 +45,42 @@
         "ERR_MECHANICAL"
       ]
     },
+    "LiftState": {
+      "title": "LiftState",
+      "description": "Состояние лифта спиральной секции (Status, Resource)",
+      "type": "object",
+      "properties": {
+        "Status": {
+          "$ref": "#/definitions/LIFT_STATE"
+        },
+        "Resource": {
+          "$ref": "./base_section_states.schema.json#/definitions/AVAILABLE_STATE"
+        }
+      },
+      "required": ["Status", "Resource"],
+      "additionalProperties": false
+    },
     "DELIVERY_BOX_STATE": {
       "title": "DELIVERY_BOX_STATE",
       "description": "Флаги состояния лючка выдачи (OPENED - люк открыт, CLOSED - люк закрыт, ERR_MECHANICAL - механическая поломка)",
       "type": "string",
       "enum": ["OPENED", "CLOSED", "ERR_MECHANICAL"],
       "tsEnumNames": ["OPENED", "CLOSED", "ERR_MECHANICAL"]
+    },
+    "DeliveryBoxState": {
+      "title": "DeliveryBoxState",
+      "description": "Состояние лючка выдачи спиральной секции (Status, Resource)",
+      "type": "object",
+      "properties": {
+        "Status": {
+          "$ref": "#/definitions/DELIVERY_BOX_STATE"
+        },
+        "Resource": {
+          "$ref": "./base_section_states.schema.json#/definitions/AVAILABLE_STATE"
+        }
+      },
+      "required": ["Status", "Resource"],
+      "additionalProperties": false
     }
   }
 }

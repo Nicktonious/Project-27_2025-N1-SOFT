@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MachineConfig",
+  "description": "JSON Schema для аппаратной конфигурации вендингового аппарата (MachineConfig)",
+  "type": "object",
+  "properties": {
+    "Global": {
+      "description": "Глобальные параметры аппарата",
+      "$ref": "./global.schema.json"
+    },
+    "Power": {
+      "description": "Конфигурация подсистемы электропитания",
+      "$ref": "./power.schema.json"
+    },
+    "Env": {
+      "description": "Конфигурация подсистемы климатического контроля",
+      "$ref": "./env.schema.json"
+    },
+    "Net": {
+      "description": "Сетевая конфигурация аппарата",
+      "$ref": "./net.schema.json"
+    },
+    "Field": {
+      "description": "Конфигурация полевых шин (RS485, CAN, TCP)",
+      "$ref": "./field.schema.json"
+    },
+    "IO": {
+      "type": "array",
+      "description": "Список конфигураций модулей ввода/вывода (IO)",
+      "items": {
+        "$ref": "./io.schema.json"
+      }
+    },
+    "Camera": {
+      "type": "array",
+      "description": "Список конфигураций систем фотовидеоконтроля (камер)",
+      "items": {
+        "$ref": "./camera.schema.json"
+      }
+    },
+    "Sections": {
+      "type": "array",
+      "description": "Список конфигураций секций аппарата",
+      "items": {
+        "$ref": "./sections.schema.json"
+      }
+    }
+  },
+  "required": [
+    "Global",
+    "Power",
+    "Env",
+    "Net",
+    "Field",
+    "IO",
+    "Camera",
+    "Sections"
+  ],
+  "additionalProperties": false
+}

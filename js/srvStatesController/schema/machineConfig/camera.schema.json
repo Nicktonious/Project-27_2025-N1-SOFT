@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CameraConfig",
+  "description": "Конфигурация IP-видеокамеры",
+  "type": "object",
+  "properties": {
+    "RefDes": {
+      "type": "string",
+      "description": "Обозначение камеры на монтажной схеме"
+    },
+    "Model": {
+      "type": "string",
+      "description": "Модель камеры"
+    },
+    "Lens": {
+      "type": "object",
+      "description": "Параметры объектива",
+      "properties": {
+        "Model": {
+          "type": "string",
+          "description": "Модель объектива"
+        },
+        "Zoom": {
+          "type": "number",
+          "description": "Начальная установка зума"
+        }
+      },
+      "required": [
+        "Model",
+        "Zoom"
+      ],
+      "additionalProperties": false
+    },
+    "Pan": {
+      "type": "number",
+      "description": "Стартовое панорамирование"
+    },
+    "Tilt": {
+      "type": "number",
+      "description": "Начальная установка наклона"
+    },
+    "Net": {
+      "type": "object",
+      "description": "Сетевые параметры камеры",
+      "properties": {
+        "IP": {
+          "type": "string",
+          "description": "IP-адрес камеры"
+        },
+        "RTP": {
+          "type": "number",
+          "description": "RTP-порт видеопотока"
+        }
+      },
+      "required": [
+        "IP",
+        "RTP"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "RefDes",
+    "Model",
+    "Lens",
+    "Pan",
+    "Tilt",
+    "Net"
+  ],
+  "additionalProperties": false
+}

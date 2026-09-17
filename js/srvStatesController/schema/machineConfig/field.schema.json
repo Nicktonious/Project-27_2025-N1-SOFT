@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FieldBusesConfig",
+  "description": "Конфигурация полевых шин аппарата",
+  "type": "object",
+  "properties": {
+    "RS485": {
+      "type": "array",
+      "description": "Список шин RS485",
+      "items": {
+        "$ref": "#/definitions/RS485BusConfig"
+      }
+    },
+    "CAN": {
+      "type": "array",
+      "description": "Список шин CAN",
+      "items": {
+        "$ref": "#/definitions/CanBusConfig"
+      }
+    },
+    "TCP": {
+      "type": "array",
+      "description": "Список шин MODBUS/TCP",
+      "items": {
+        "$ref": "#/definitions/TcpBusConfig"
+      }
+    }
+  },
+  "required": [
+    "RS485",
+    "CAN",
+    "TCP"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "FieldRef": {
+      "title": "FieldRef",
+      "description": "Ссылка на подключение устройства к полевой шине",
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "description": "Ссылка на полевую шину (например, 'hubLow/PORT1', 'ICP-CON2/com1')"
+        },
+        "ID": {
+          "type": "string",
+          "description": "Адрес устройства на шине"
+        }
+      },
+      "required": [
+        "ref",
+        "ID"
+      ],
+      "additionalProperties": false
+    },
+    "RS485BusConfig": {
+      "title": "RS485BusConfig",
+      "description": "Конфигурация полевой шины RS485 (MODBUS/RTU)",
+      "type": "object",
+      "properties": {
+        "RefDes": {
+          "type": "string",
+          "description": "Обозначение шины на монтажной схеме"
+        },
+        "Master": {
+          "type": "string",
+          "description": "Мастер-устройство ('hubLow', 'icpcon1' и т.д.)"
+        },
+        "Port": {
+          "type": "string",
+          "description": "Имя порта на мастере или 'ip:port'"
+        },
+        "Baud": {
+          "type": "number",
+          "description": "Скорость работы порта (бод)"
+        }
+      },
+      "required": [
+        "RefDes",
+        "Master",
+        "Port",
+        "Baud"
+      ],
+      "additionalProperties": false
+    },
+    "CanBusConfig": {
+      "title": "CanBusConfig",
+      "description": "Конфигурация полевой шины CAN",
+      "type": "object",
+      "properties": {
+        "RefDes": {
+          "type": "string",
+          "description": "Обозначение шины на монтажной схеме"
+        }
+      },
+      "required": [
+        "RefDes"
+      ],
+      "additionalProperties": false
+    },
+    "TcpBusConfig": {
+      "title": "TcpBusConfig",
+      "description": "Конфигурация сетевой полевой шины MODBUS/TCP",
+      "type": "object",
+      "properties": {
+        "SubNet": {
+          "type": "string",
+          "description": "Подсеть MODBUS/TCP"
+        }
+      },
+      "required": [
+        "SubNet"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

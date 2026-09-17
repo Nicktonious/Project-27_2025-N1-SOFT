@@ -25,7 +25,10 @@
               "description": "Текущая потребляемая активная мощность, Вт"
             }
           },
-          "required": ["MainsVoltage", "Consumption"],
+          "required": [
+            "MainsVoltage",
+            "Consumption"
+          ],
           "additionalProperties": false
         },
         "Energy": {
@@ -45,7 +48,11 @@
               "description": "Потреблённая активная энергия за месяц, кВт*ч"
             }
           },
-          "required": ["Day", "Week", "Month"],
+          "required": [
+            "Day",
+            "Week",
+            "Month"
+          ],
           "additionalProperties": false
         },
         "Env": {
@@ -61,11 +68,19 @@
               "description": "Усреднённое значение влажности окружающей среды, %"
             }
           },
-          "required": ["Temp", "Hum"],
+          "required": [
+            "Temp",
+            "Hum"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["Uptime", "Power", "Energy", "Env"],
+      "required": [
+        "Uptime",
+        "Power",
+        "Energy",
+        "Env"
+      ],
       "additionalProperties": false
     },
     "Bus": {
@@ -86,11 +101,23 @@
       "type": "array",
       "description": "Переменные наработки и измерений секций аппарата",
       "items": {
-        "$ref": "#/definitions/SectionMonitoring"
+        "anyOf": [
+          {
+            "$ref": "./spiral_section_monitoring.schema.json"
+          },
+          {
+            "$ref": "./base_section_monitoring.schema.json"
+          }
+        ]
       }
     }
   },
-  "required": ["Global", "Bus", "PSU", "Sections"],
+  "required": [
+    "Global",
+    "Bus",
+    "PSU",
+    "Sections"
+  ],
   "additionalProperties": false,
   "definitions": {
     "BusMonitoring": {
@@ -107,7 +134,10 @@
           "description": "Числовое значение тока на шине, А"
         }
       },
-      "required": ["Voltage", "Current"],
+      "required": [
+        "Voltage",
+        "Current"
+      ],
       "additionalProperties": false
     },
     "PsuUptimeMonitoring": {
@@ -132,7 +162,12 @@
           "description": "Наработка в режиме перегреве"
         }
       },
-      "required": ["Hours", "Nominal", "OVCcount", "OVTcount"],
+      "required": [
+        "Hours",
+        "Nominal",
+        "OVCcount",
+        "OVTcount"
+      ],
       "additionalProperties": false
     },
     "PsuMonitoring": {
@@ -160,144 +195,13 @@
           "$ref": "#/definitions/PsuUptimeMonitoring"
         }
       },
-      "required": ["VoltageIn", "VoltageOut", "CurrentOut", "Temp", "Uptime"],
-      "additionalProperties": false
-    },
-    "ItemUptimeMonitoring": {
-      "title": "ItemUptimeMonitoring",
-      "description": "Показатели наработки конструктивного элемента (часы, циклы, типовой моторесурс)",
-      "type": "object",
-      "properties": {
-        "Hours": {
-          "type": "number",
-          "description": "Наработка, часов"
-        },
-        "Cycles": {
-          "type": "number",
-          "description": "Наработка, циклов"
-        },
-        "Nominal": {
-          "type": "number",
-          "description": "Типовая наработка (номинальный моторесурс)"
-        }
-      },
-      "required": ["Hours", "Cycles", "Nominal"],
-      "additionalProperties": false
-    },
-    "DeliveryBoxUptimeMonitoring": {
-      "title": "DeliveryBoxUptimeMonitoring",
-      "description": "Показатели наработки лючка выдачи",
-      "type": "object",
-      "properties": {
-        "Cycles": {
-          "type": "number",
-          "description": "Наработка, циклов"
-        },
-        "Nominal": {
-          "type": "number",
-          "description": "Типовая наработка (номинальный моторесурс)"
-        }
-      },
-      "required": ["Cycles", "Nominal"],
-      "additionalProperties": false
-    },
-    "IoUptimeMonitoring": {
-      "title": "IoUptimeMonitoring",
-      "description": "Показатели наработки модуля ввода-вывода (IO)",
-      "type": "object",
-      "properties": {
-        "Hours": {
-          "type": "number",
-          "description": "Наработка, часов"
-        },
-        "Nominal": {
-          "type": "number",
-          "description": "Типичная наработка (номинальный моторесурс)"
-        }
-      },
-      "required": ["Hours", "Nominal"],
-      "additionalProperties": false
-    },
-    "SectionMonitoring": {
-      "title": "SectionMonitoring",
-      "description": "Переменные наработки и измерений секции",
-      "type": "object",
-      "properties": {
-        "Name": {
-          "type": "string",
-          "description": "Имя секции (например, 'spiral', 'postomat')"
-        },
-        "Uptime": {
-          "$ref": "#/definitions/ItemUptimeMonitoring"
-        },
-        "Rows": {
-          "type": "array",
-          "description": "Массив наработки строк (полок) секции",
-          "items": {
-            "type": "object",
-            "properties": {
-              "Uptime": { "$ref": "#/definitions/ItemUptimeMonitoring" }
-            },
-            "required": ["Uptime"],
-            "additionalProperties": false
-          }
-        },
-        "Cols": {
-          "type": "array",
-          "description": "Массив наработки столбцов секции",
-          "items": {
-            "type": "object",
-            "properties": {
-              "Uptime": { "$ref": "#/definitions/ItemUptimeMonitoring" }
-            },
-            "required": ["Uptime"],
-            "additionalProperties": false
-          }
-        },
-        "Cells": {
-          "type": "array",
-          "description": "Массив наработки ячеек секции",
-          "items": {
-            "type": "object",
-            "properties": {
-              "Uptime": { "$ref": "#/definitions/ItemUptimeMonitoring" }
-            },
-            "required": ["Uptime"],
-            "additionalProperties": false
-          }
-        },
-        "Lift": {
-          "type": "object",
-          "description": "Переменные наработки лифта секции",
-          "properties": {
-            "Uptime": { "$ref": "#/definitions/ItemUptimeMonitoring" }
-          },
-          "required": ["Uptime"],
-          "additionalProperties": false
-        },
-        "DeliveryBox": {
-          "type": "object",
-          "description": "Переменные наработки лючка выдачи",
-          "properties": {
-            "Uptime": { "$ref": "#/definitions/DeliveryBoxUptimeMonitoring" }
-          },
-          "required": ["Uptime"],
-          "additionalProperties": false
-        },
-        "IO": {
-          "type": "object",
-          "description": "Переменные наработки модулей ввода-вывода (IO)",
-          "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "Uptime": { "$ref": "#/definitions/IoUptimeMonitoring" }
-            },
-            "required": ["Uptime"],
-            "additionalProperties": false
-          }
-        }
-      },
-      "required": ["Name", "Uptime", "Rows", "Cols", "Cells"],
+      "required": [
+        "VoltageIn",
+        "VoltageOut",
+        "CurrentOut",
+        "Temp",
+        "Uptime"
+      ],
       "additionalProperties": false
     }
   }

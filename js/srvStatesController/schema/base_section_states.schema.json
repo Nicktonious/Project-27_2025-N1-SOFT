@@ -14,11 +14,11 @@
     "Door": {
       "$ref": "#/definitions/DOOR_STATE"
     },
+    "Action": {
+      "$ref": "#/definitions/SECTION_ACTION"
+    },
     "Status": {
       "$ref": "#/definitions/SECTION_STATUS"
-    },
-    "Command": {
-      "$ref": "#/definitions/COMMAND_STATE"
     },
     "Rows": {
       "type": "array",
@@ -41,20 +41,6 @@
         "$ref": "#/definitions/TYPE_CELL"
       }
     },
-    "CellsTransact": {
-      "type": "array",
-      "description": "Массив транзакционных состояний ячеек",
-      "items": {
-        "$ref": "#/definitions/TRANSACT_STATE"
-      }
-    },
-    "Resourse_available": {
-      "type": "array",
-      "description": "Массив флагов доступности моторесурса по ячейкам",
-      "items": {
-        "$ref": "#/definitions/AVAILABLE_STATE"
-      }
-    },
     "IO": {
       "type": "object",
       "description": "Словарь состояний модулей ввода-вывода (IO)",
@@ -64,17 +50,15 @@
     }
   },
   "required": [
-    "Name",
     "IsAvailable",
+    "Door",
+    "Action",
     "Status",
     "Rows",
     "Cols",
     "Cells",
-    "CellsTransact",
-    "Resourse_available",
     "IO"
   ],
-  "additionalProperties": false,
   "definitions": {
     "AVAILABLE_STATE": {
       "title": "AVAILABLE_STATE",
@@ -90,19 +74,26 @@
       "enum": ["CLOSED", "OPEN"],
       "tsEnumNames": ["CLOSED", "OPEN"]
     },
+    "SECTION_ACTION": {
+      "title": "SECTION_ACTION",
+      "description": "Действие секции (IDLE - секция простаивает, DISPENSE - секция занимается выдачей ТМЦ, LOADING - в секцию загружают ТМЦ)",
+      "type": "string",
+      "enum": ["IDLE", "DISPENSE", "LOADING"],
+      "tsEnumNames": ["IDLE", "DISPENSE", "LOADING"]
+    },
+    "SECTION_STATUS": {
+      "title": "SECTION_STATUS",
+      "description": "Статус готовности секции к командам ВУ (IDLE - ожидание команды ВУ, COMMAND - выполнение команды, BLOCKED - выполнение команд ВУ заблокировано)",
+      "type": "string",
+      "enum": ["IDLE", "COMMAND", "BLOCKED"],
+      "tsEnumNames": ["IDLE", "COMMAND", "BLOCKED"]
+    },
     "COMMAND_STATE": {
       "title": "COMMAND_STATE",
       "description": "Состояние выполнения команд (IDLE - ожидание команды, COMMAND - выполнение команды, BLOCKED - заблокировано)",
       "type": "string",
       "enum": ["IDLE", "COMMAND", "BLOCKED"],
       "tsEnumNames": ["IDLE", "COMMAND", "BLOCKED"]
-    },
-    "SECTION_STATUS": {
-      "title": "SECTION_STATUS",
-      "description": "Статус выполнения операций секции (IDLE - простой, DISPENSE - выдача ТМЦ, DELIVERY - доставка, BLOCKED - заблокирована, LOADING - загрузка ТМЦ)",
-      "type": "string",
-      "enum": ["IDLE", "DISPENSE", "DELIVERY", "BLOCKED", "LOADING"],
-      "tsEnumNames": ["IDLE", "DISPENSE", "DELIVERY", "BLOCKED", "LOADING"]
     },
     "LINE_STATE": {
       "title": "LINE_STATE",
@@ -113,7 +104,7 @@
     },
     "CELL_STATE": {
       "title": "CELL_STATE",
-      "description": "Флаги состояния ячейки (OK - штатно, OVERLOAD_I - повышенный ток, OVERLOAD_V - повышенное напряжение, BLOCKED - заблокирована, ERROR - ошибка, SERVICE - обслуживание, ERR_TAMPER - ошибка тампера, ERR_TAMPER_BAD_POS - некорректная позиция, ACTUATOR_SHORT_CIRCUIT - КЗ актуатора, ACTUATOR_NO_POWER - нет питания, ERR_MECHANICAL - механическая поломка, OVERLOAD - перегрузка, NOT_CLOSED - ячейка открыта слишком долго)",
+      "description": "Флаги состояния ячейки (OK - штатно, OVERLOAD_I - повышенный ток, OVERLOAD_V - повышенное напряжение, BLOCKED - заблокирована, ERROR - ошибка, SERVICE - обслуживание, ERR_TAMPER - ошибка тампера, ERR_TAMPER_BAD_POS - некорректная позиция, ACTUATOR_SHORT_CIRCUIT - КЗ актуатора, ACTUATOR_NO_POWER - нет питания, ERR_MECHANICAL - механическая поломка)",
       "type": "string",
       "enum": [
         "OK",
@@ -144,14 +135,14 @@
     },
     "CELL_ACTION": {
       "title": "CELL_ACTION",
-      "description": "Флаги состояния действия ячейки (IDLE - закрыта/в ждущем режиме, ACTION - отрабатывает команду выдачи, OPEN - открыта, NOT_CLOSED - открыта слишком долго)", 
+      "description": "Флаги состояния действия ячейки (IDLE - закрыта/в ждущем режиме, ACTION - отрабатывает команду выдачи, OPEN - открыта, NOT_CLOSED - открыта слишком долго)",
       "type": "string",
       "enum": ["IDLE", "ACTION", "OPEN", "NOT_CLOSED"],
       "tsEnumNames": ["IDLE", "ACTION", "OPEN", "NOT_CLOSED"]
     },
     "TYPE_CELL": {
       "title": "TYPE_CELL",
-      "description": "Объект состояния ячейки секции (Status, Action)",
+      "description": "Объект состояния ячейки секции (Status, Action, Resource)",
       "type": "object",
       "properties": {
         "Status": {
@@ -159,17 +150,13 @@
         },
         "Action": {
           "$ref": "#/definitions/CELL_ACTION"
+        },
+        "Resource": {
+          "$ref": "#/definitions/AVAILABLE_STATE"
         }
       },
-      "required": ["Status", "Action"],
+      "required": ["Status", "Action", "Resource"],
       "additionalProperties": false
-    },
-    "TRANSACT_STATE": {
-      "title": "TRANSACT_STATE",
-      "description": "Транзакционное состояние выполнения операции над ячейкой (OK - готова, EXECUTING - выполняется, COMPLETED - завершена, WARNING - предупреждение)",
-      "type": "string",
-      "enum": ["OK", "EXECUTING", "COMPLETED", "WARNING"],
-      "tsEnumNames": ["OK", "EXECUTING", "COMPLETED", "WARNING"]
     },
     "IO_STATE": {
       "title": "IO_STATE",
@@ -187,25 +174,31 @@
     },
     "TYPE_IO": {
       "title": "TYPE_IO",
-      "description": "Объект состояния и конфигурации модуля ввода-вывода (IO)",
+      "description": "Объект состояния модуля ввода-вывода (IO)",
       "type": "object",
       "properties": {
-        "name": {
-          "type": "string",
-          "description": "Имя модуля ввода-вывода"
-        },
-        "state": {
+        "Status": {
           "$ref": "#/definitions/IO_STATE"
         },
-        "ports": {
+        "DO": {
           "type": "array",
-          "description": "Массив состояний портов IO модуля",
+          "description": "Массив состояний цифровых выходов DO",
           "items": {
             "$ref": "#/definitions/IO_PORT_STATE"
           }
+        },
+        "DI": {
+          "type": "array",
+          "description": "Массив состояний цифровых входов DI",
+          "items": {
+            "$ref": "#/definitions/IO_PORT_STATE"
+          }
+        },
+        "Resource": {
+          "$ref": "#/definitions/AVAILABLE_STATE"
         }
       },
-      "required": ["name", "state", "ports"],
+      "required": ["Status", "DO", "DI", "Resource"],
       "additionalProperties": false
     }
   }

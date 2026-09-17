@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GlobalConfig",
+  "description": "Глобальные параметры идентификации аппарата",
+  "type": "object",
+  "properties": {
+    "ID": {
+      "type": "string",
+      "description": "Уникальный идентификатор аппарата (UID)"
+    },
+    "Model": {
+      "type": "string",
+      "description": "Модель аппарата"
+    },
+    "StartDate": {
+      "type": "string",
+      "description": "Дата ввода в эксплуатацию (ГГГГ-ММ-ДД)"
+    }
+  },
+  "required": [
+    "ID",
+    "Model",
+    "StartDate"
+  ],
+  "additionalProperties": false
+}

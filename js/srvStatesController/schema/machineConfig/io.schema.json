@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IoModuleConfig",
+  "description": "Конфигурация модуля ввода/вывода (IO)",
+  "type": "object",
+  "properties": {
+    "RefDes": {
+      "type": "string",
+      "description": "Обозначение модуля на монтажной схеме"
+    },
+    "Model": {
+      "type": "string",
+      "description": "Модель модуля IO"
+    },
+    "Field": {
+      "$ref": "./field.schema.json#/definitions/FieldRef"
+    },
+    "Net": {
+      "type": "object",
+      "description": "Сетевые параметры IO модуля",
+      "properties": {
+        "IP": {
+          "type": "string",
+          "description": "IP-адрес модуля"
+        },
+        "Web": {
+          "type": "number",
+          "description": "Порт веб-интерфейса"
+        }
+      },
+      "required": [
+        "IP",
+        "Web"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "RefDes",
+    "Model",
+    "Field"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SpiralSectionMonitoring",
+  "description": "JSON Schema для мониторинга спиральной секции (SpiralSectionMonitoring), расширяющая базовую схему мониторинга секции",
+  "allOf": [
+    {
+      "$ref": "./base_section_monitoring.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "Lift": {
+          "$ref": "#/definitions/LiftMonitoring"
+        },
+        "DeliveryBox": {
+          "$ref": "#/definitions/DeliveryBoxMonitoring"
+        }
+      },
+      "required": [
+        "Lift",
+        "DeliveryBox"
+      ]
+    }
+  ],
+  "definitions": {
+    "LiftMonitoring": {
+      "title": "LiftMonitoring",
+      "description": "Переменные наработки лифта секции",
+      "type": "object",
+      "properties": {
+        "Uptime": {
+          "$ref": "./base_section_monitoring.schema.json#/definitions/ItemUptimeMonitoring"
+        }
+      },
+      "required": [
+        "Uptime"
+      ],
+      "additionalProperties": false
+    },
+    "DeliveryBoxUptimeMonitoring": {
+      "title": "DeliveryBoxUptimeMonitoring",
+      "description": "Показатели наработки лючка выдачи",
+      "type": "object",
+      "properties": {
+        "Cycles": {
+          "type": "number",
+          "description": "Наработка, циклов"
+        },
+        "Nominal": {
+          "type": "number",
+          "description": "Типовая наработка (номинальный моторесурс)"
+        }
+      },
+      "required": [
+        "Cycles",
+        "Nominal"
+      ],
+      "additionalProperties": false
+    },
+    "DeliveryBoxMonitoring": {
+      "title": "DeliveryBoxMonitoring",
+      "description": "Переменные наработки лючка выдачи",
+      "type": "object",
+      "properties": {
+        "Uptime": {
+          "$ref": "#/definitions/DeliveryBoxUptimeMonitoring"
+        }
+      },
+      "required": [
+        "Uptime"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

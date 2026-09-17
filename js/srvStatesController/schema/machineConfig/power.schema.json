@@ -1,0 +1,183 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PowerConfig",
+  "description": "Конфигурация подсистемы электропитания аппарата",
+  "type": "object",
+  "properties": {
+    "Mains": {
+      "$ref": "#/definitions/MainsConfig"
+    },
+    "PSU": {
+      "type": "array",
+      "description": "Список источников питания (PSU)",
+      "items": {
+        "$ref": "#/definitions/PsuConfig"
+      }
+    },
+    "Bus": {
+      "type": "array",
+      "description": "Список шин распределения электропитания",
+      "items": {
+        "$ref": "#/definitions/BusConfig"
+      }
+    }
+  },
+  "required": [
+    "Mains",
+    "PSU",
+    "Bus"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "BATTERY_TYPE": {
+      "title": "BATTERY_TYPE",
+      "description": "Тип аккумулятора (lipo - литий-полимерный, lead - свинцово-кислотный)",
+      "type": "string",
+      "enum": [
+        "lipo",
+        "lead"
+      ],
+      "tsEnumNames": [
+        "LIPO",
+        "LEAD"
+      ]
+    },
+    "MainsConfig": {
+      "title": "MainsConfig",
+      "description": "Параметры электропитания сети переменного тока",
+      "type": "object",
+      "properties": {
+        "Voltage": {
+          "type": "number",
+          "description": "Номинальное сетевое напряжение, В (по умолчанию 230)"
+        },
+        "VoltageMin": {
+          "type": "number",
+          "description": "Минимально допустимое сетевое напряжение, В (по умолчанию 170)"
+        },
+        "VoltageMax": {
+          "type": "number",
+          "description": "Максимально допустимое сетевое напряжение, В (по умолчанию 250)"
+        },
+        "PowerMax": {
+          "type": "number",
+          "description": "Максимальная потребляемая мощность аппарата, Вт (по умолчанию 200)"
+        }
+      },
+      "required": [
+        "Voltage",
+        "VoltageMin",
+        "VoltageMax",
+        "PowerMax"
+      ],
+      "additionalProperties": false
+    },
+    "BatteryConfig": {
+      "title": "BatteryConfig",
+      "description": "Параметры резервной аккумуляторной батареи",
+      "type": "object",
+      "properties": {
+        "Model": {
+          "type": "string",
+          "description": "Модель батареи"
+        },
+        "type": {
+          "$ref": "#/definitions/BATTERY_TYPE"
+        },
+        "Voltage": {
+          "type": "number",
+          "description": "Номинальное напряжение батареи, В"
+        },
+        "Capacity": {
+          "type": "number",
+          "description": "Ёмкость батареи, Ач"
+        }
+      },
+      "required": [
+        "Model",
+        "type",
+        "Voltage",
+        "Capacity"
+      ],
+      "additionalProperties": false
+    },
+    "PsuConfig": {
+      "title": "PsuConfig",
+      "description": "Конфигурация источника питания (ИП / PSU)",
+      "type": "object",
+      "properties": {
+        "RefDes": {
+          "type": "string",
+          "description": "Обозначение источника питания на монтажной схеме"
+        },
+        "Model": {
+          "type": "string",
+          "description": "Модель источника питания"
+        },
+        "Bus": {
+          "type": "number",
+          "description": "Номер подключенной шины электропитания"
+        },
+        "VoltageIn": {
+          "type": "number",
+          "description": "Входное напряжение, В (по умолчанию 230)"
+        },
+        "VoltageOut": {
+          "type": "number",
+          "description": "Выходное напряжение, В"
+        },
+        "CurrentMax": {
+          "type": "number",
+          "description": "Ограничение максимального выходного тока, А"
+        },
+        "Battery": {
+          "$ref": "#/definitions/BatteryConfig"
+        },
+        "Field": {
+          "$ref": "./field.schema.json#/definitions/FieldRef"
+        }
+      },
+      "required": [
+        "RefDes",
+        "Model",
+        "Bus",
+        "VoltageIn",
+        "VoltageOut",
+        "CurrentMax",
+        "Field"
+      ],
+      "additionalProperties": false
+    },
+    "BusConfig": {
+      "title": "BusConfig",
+      "description": "Конфигурация шины электропитания",
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "number",
+          "description": "Индекс источника питания (0 - шина сетевого питания Mains)"
+        },
+        "Voltage": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Номинальное напряжение шины, В"
+        },
+        "CurrentMax": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Максимально допустимый ток шины, А"
+        }
+      },
+      "required": [
+        "source",
+        "Voltage",
+        "CurrentMax"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

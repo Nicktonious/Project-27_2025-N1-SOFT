@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BaseSectionMonitoring",
+  "description": "JSON Schema для базового мониторинга секции (BaseSectionMonitoring)",
+  "type": "object",
+  "properties": {
+    "Name": {
+      "type": "string",
+      "description": "Имя секции (например, 'spiral', 'postomat')"
+    },
+    "Uptime": {
+      "$ref": "#/definitions/ItemUptimeMonitoring"
+    },
+    "Rows": {
+      "type": "array",
+      "description": "Массив наработки строк (полок) секции",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Uptime": {
+            "$ref": "#/definitions/ItemUptimeMonitoring"
+          }
+        },
+        "required": [
+          "Uptime"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "Cols": {
+      "type": "array",
+      "description": "Массив наработки столбцов секции",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Uptime": {
+            "$ref": "#/definitions/ItemUptimeMonitoring"
+          }
+        },
+        "required": [
+          "Uptime"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "Cells": {
+      "type": "array",
+      "description": "Массив наработки ячеек секции",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Uptime": {
+            "$ref": "#/definitions/ItemUptimeMonitoring"
+          }
+        },
+        "required": [
+          "Uptime"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "IO": {
+      "type": "object",
+      "description": "Переменные наработки модулей ввода-вывода (IO)",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "Uptime": {
+            "$ref": "#/definitions/IoUptimeMonitoring"
+          }
+        },
+        "required": [
+          "Uptime"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "Name",
+    "Uptime",
+    "Cells"
+  ],
+  "definitions": {
+    "ItemUptimeMonitoring": {
+      "title": "ItemUptimeMonitoring",
+      "description": "Показатели наработки конструктивного элемента (часы, циклы, типовой моторесурс)",
+      "type": "object",
+      "properties": {
+        "Hours": {
+          "type": "number",
+          "description": "Наработка, часов"
+        },
+        "Cycles": {
+          "type": "number",
+          "description": "Наработка, циклов"
+        },
+        "Nominal": {
+          "type": "number",
+          "description": "Типовая наработка (номинальный моторесурс)"
+        }
+      },
+      "required": [
+        "Hours",
+        "Cycles",
+        "Nominal"
+      ],
+      "additionalProperties": false
+    },
+    "IoUptimeMonitoring": {
+      "title": "IoUptimeMonitoring",
+      "description": "Показатели наработки модуля ввода-вывода (IO)",
+      "type": "object",
+      "properties": {
+        "Hours": {
+          "type": "number",
+          "description": "Наработка, часов"
+        },
+        "Nominal": {
+          "type": "number",
+          "description": "Типичная наработка (номинальный моторесурс)"
+        }
+      },
+      "required": [
+        "Hours",
+        "Nominal"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
