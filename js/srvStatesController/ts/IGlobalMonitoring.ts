@@ -6,6 +6,15 @@
  */
 
 /**
+ * JSON Schema для мониторинга спиральной секции (SpiralSectionMonitoring), расширяющая базовую схему мониторинга секции
+ */
+export type SpiralSectionMonitoring = BaseSectionMonitoring & {
+  Lift: LiftMonitoring;
+  DeliveryBox: DeliveryBoxMonitoring;
+  [k: string]: unknown;
+};
+
+/**
  * JSON Schema для системы глобального мониторинга аппарата (Monitoring)
  */
 export interface GlobalMonitoring {
@@ -72,7 +81,7 @@ export interface GlobalMonitoring {
   /**
    * Переменные наработки и измерений секций аппарата
    */
-  Sections: SectionMonitoring[];
+  Sections: (SpiralSectionMonitoring | BaseSectionMonitoring)[];
 }
 /**
  * Параметры измерений шины электропитания
@@ -131,9 +140,9 @@ export interface PsuUptimeMonitoring {
   OVTcount: number;
 }
 /**
- * Переменные наработки и измерений секции
+ * JSON Schema для базового мониторинга секции (BaseSectionMonitoring)
  */
-export interface SectionMonitoring {
+export interface BaseSectionMonitoring {
   /**
    * Имя секции (например, 'spiral', 'postomat')
    */
@@ -142,13 +151,13 @@ export interface SectionMonitoring {
   /**
    * Массив наработки строк (полок) секции
    */
-  Rows: {
+  Rows?: {
     Uptime: ItemUptimeMonitoring;
   }[];
   /**
    * Массив наработки столбцов секции
    */
-  Cols: {
+  Cols?: {
     Uptime: ItemUptimeMonitoring;
   }[];
   /**
@@ -158,18 +167,6 @@ export interface SectionMonitoring {
     Uptime: ItemUptimeMonitoring;
   }[];
   /**
-   * Переменные наработки лифта секции
-   */
-  Lift?: {
-    Uptime: ItemUptimeMonitoring;
-  };
-  /**
-   * Переменные наработки лючка выдачи
-   */
-  DeliveryBox?: {
-    Uptime: DeliveryBoxUptimeMonitoring;
-  };
-  /**
    * Переменные наработки модулей ввода-вывода (IO)
    */
   IO?: {
@@ -177,6 +174,7 @@ export interface SectionMonitoring {
       Uptime: IoUptimeMonitoring;
     };
   };
+  [k: string]: unknown;
 }
 /**
  * Показатели наработки конструктивного элемента (часы, циклы, типовой моторесурс)
@@ -196,19 +194,6 @@ export interface ItemUptimeMonitoring {
   Nominal: number;
 }
 /**
- * Показатели наработки лючка выдачи
- */
-export interface DeliveryBoxUptimeMonitoring {
-  /**
-   * Наработка, циклов
-   */
-  Cycles: number;
-  /**
-   * Типовая наработка (номинальный моторесурс)
-   */
-  Nominal: number;
-}
-/**
  * Показатели наработки модуля ввода-вывода (IO)
  */
 export interface IoUptimeMonitoring {
@@ -218,6 +203,31 @@ export interface IoUptimeMonitoring {
   Hours: number;
   /**
    * Типичная наработка (номинальный моторесурс)
+   */
+  Nominal: number;
+}
+/**
+ * Переменные наработки лифта секции
+ */
+export interface LiftMonitoring {
+  Uptime: ItemUptimeMonitoring;
+}
+/**
+ * Переменные наработки лючка выдачи
+ */
+export interface DeliveryBoxMonitoring {
+  Uptime: DeliveryBoxUptimeMonitoring;
+}
+/**
+ * Показатели наработки лючка выдачи
+ */
+export interface DeliveryBoxUptimeMonitoring {
+  /**
+   * Наработка, циклов
+   */
+  Cycles: number;
+  /**
+   * Типовая наработка (номинальный моторесурс)
    */
   Nominal: number;
 }

@@ -6,10 +6,24 @@
  */
 
 /**
+ * Каналы управления подсветкой секции
+ */
+export type LedChannelsConfig =
+  | {
+      /**
+       * Канал управления подсветкой секции
+       */
+      Ctrl?: string;
+    }
+  | string;
+
+/**
  * JSON Schema для аппаратной конфигурации вендингового аппарата (MachineConfig)
  */
 export interface MachineConfig {
   Global: GlobalConfig;
+  Monitoring: MonitoringConfig;
+  Light: LightConfig;
   Power: PowerConfig;
   Env: EnvConfig;
   Net: NetConfig;
@@ -43,6 +57,32 @@ export interface GlobalConfig {
    * Дата ввода в эксплуатацию (ГГГГ-ММ-ДД)
    */
   StartDate: string;
+}
+/**
+ * Конфигурация параметров фонового мониторинга
+ */
+export interface MonitoringConfig {
+  /**
+   * Периодичность опроса и публикации мониторинга в миллисекундах
+   */
+  Interval: number;
+}
+/**
+ * Конфигурация каналов управления подсветкой и освещением
+ */
+export interface LightConfig {
+  /**
+   * Отображение индекса секции или устройства на имя канала освещения
+   */
+  Channels: {
+    /**
+     * Имя канала управления подсветкой
+     *
+     * This interface was referenced by `undefined`'s JSON-Schema definition
+     * via the `patternProperty` "^[0-9]+$".
+     */
+    [k: string]: string;
+  };
 }
 /**
  * Конфигурация подсистемы электропитания
@@ -109,6 +149,31 @@ export interface PsuConfig {
   CurrentMax: number;
   Battery?: BatteryConfig;
   Field: FieldRef;
+  /**
+   * Каналы мониторинга источника питания
+   */
+  Channels?: {
+    /**
+     * Имя канала входящего напряжения
+     */
+    VoltageIn?: string;
+    /**
+     * Имя канала выходящего напряжения
+     */
+    VoltageOut?: string;
+    /**
+     * Имя канала выходящего тока
+     */
+    CurrentOut?: string;
+    /**
+     * Имя канала мощности
+     */
+    Power?: string;
+    /**
+     * Имя канала температуры
+     */
+    Temp?: string;
+  };
 }
 /**
  * Параметры резервной аккумуляторной батареи
@@ -133,7 +198,7 @@ export interface BatteryConfig {
  */
 export interface FieldRef {
   /**
-   * Ссылка на полевую шину (например, 'Field/RS485/0')
+   * Ссылка на полевую шину (например, 'hubLow/PORT1', 'ICP-CON2/com1')
    */
   ref: string;
   /**
@@ -146,13 +211,9 @@ export interface FieldRef {
  */
 export interface BusConfig {
   /**
-   * Индекс источника питания (0 - шина сетевого питания Mains)
+   * Флаг первичного сетевого ввода (true - сетевой ввод Mains, false - вторичная шина от источника)
    */
-  source: number;
-  /**
-   * Список подключенных к шине устройств
-   */
-  sink: string[];
+  source?: boolean;
   /**
    * Номинальное напряжение шины, В
    */
@@ -174,10 +235,6 @@ export interface EnvConfig {
    * Список датчиков влажности
    */
   Hum: HumSensorConfig[];
-  /**
-   * Список вентиляторов
-   */
-  Fan: FanConfig[];
 }
 /**
  * Конфигурация датчика температуры
@@ -200,6 +257,15 @@ export interface TempSensorConfig {
    */
   Max: number;
   Field: FieldRef;
+  /**
+   * Каналы датчика температуры
+   */
+  Channels: {
+    /**
+     * Имя канала температуры
+     */
+    Temp: string;
+  };
 }
 /**
  * Конфигурация датчика влажности
@@ -222,24 +288,15 @@ export interface HumSensorConfig {
    */
   Max: number;
   Field: FieldRef;
-}
-/**
- * Конфигурация вентилятора охлаждения
- */
-export interface FanConfig {
   /**
-   * Обозначение вентилятора на монтажной схеме
+   * Каналы датчика влажности
    */
-  RefDes: string;
-  /**
-   * Модель вентилятора
-   */
-  Model: string;
-  /**
-   * Максимальная скорость вращения (ШИМ)
-   */
-  PWM: number;
-  Field: FieldRef;
+  Channels: {
+    /**
+     * Имя канала влажности
+     */
+    Hum: string;
+  };
 }
 /**
  * Сетевая конфигурация аппарата
@@ -266,6 +323,10 @@ export interface NetConfig {
   Hub: {
     Low: {
       IP: string;
+      /**
+       * Канал температуры процессора хаба
+       */
+      CpuTempChannel?: string;
     };
     Mid: {
       IP: string;
@@ -274,7 +335,43 @@ export interface NetConfig {
       IP: string;
     };
   };
-  [k: string]: unknown;
+  /**
+   * Сетевые параметры серверного ПО и сервисов
+   */
+  SW: {
+    LOW: {
+      REDIS: {
+        IP: string;
+        PORT: string;
+      };
+    };
+    MID: {
+      MQTT: {
+        IP: string;
+        PORT: string;
+        WS_PORT: string;
+        CLIENT_URL: string;
+      };
+      MONGODB: {
+        IP: string;
+        PORT: string;
+      };
+      NTP: {
+        IP: string;
+        PORT: string;
+      };
+      GRAYLOG: {
+        IP: string;
+        WEB: {
+          PORT: number;
+        };
+        INPUT: {
+          PORT: number;
+        }[];
+        URL: string;
+      };
+    };
+  };
 }
 /**
  * Конфигурация сетевого роутера
@@ -350,10 +447,6 @@ export interface NetPortConfig {
    * Флаг наличия/активности PoE
    */
   poe: boolean;
-  /**
-   * Список подключенных устройств к порту
-   */
-  sink: string[];
 }
 /**
  * Конфигурация сетевого коммутатора
@@ -363,11 +456,15 @@ export interface SwitchConfig {
    * Обозначение коммутатора на монтажной схеме
    */
   RefDes: string;
-  Power: NetPowerDeviceConfig;
   /**
-   * Список портов коммутатора
+   * Модель коммутатора
    */
-  port: NetPortConfig[];
+  Model: string;
+  /**
+   * Общее количество портов коммутатора
+   */
+  PortsTotal: number;
+  Power: NetPowerDeviceConfig;
 }
 /**
  * Конфигурация полевых шин (RS485, CAN, TCP)
@@ -395,7 +492,7 @@ export interface RS485BusConfig {
    */
   RefDes: string;
   /**
-   * Мастер-устройство ('hub-low', 'icpcon1' и т.д.)
+   * Мастер-устройство ('hubLow', 'icpcon1' и т.д.)
    */
   Master: string;
   /**
@@ -406,10 +503,6 @@ export interface RS485BusConfig {
    * Скорость работы порта (бод)
    */
   Baud: number;
-  /**
-   * Список подключенных устройств на шине
-   */
-  sink: string[];
 }
 /**
  * Конфигурация полевой шины CAN
@@ -419,10 +512,6 @@ export interface CanBusConfig {
    * Обозначение шины на монтажной схеме
    */
   RefDes: string;
-  /**
-   * Список подключенных устройств к шине CAN
-   */
-  sink: string[];
 }
 /**
  * Конфигурация сетевой полевой шины MODBUS/TCP
@@ -432,10 +521,6 @@ export interface TcpBusConfig {
    * Подсеть MODBUS/TCP
    */
   SubNet: string;
-  /**
-   * Список подключенных устройств в подсети
-   */
-  sink: string[];
 }
 /**
  * Конфигурация модуля ввода/вывода (IO)
@@ -463,27 +548,6 @@ export interface IoModuleConfig {
      */
     Web: number;
   };
-  /**
-   * Цифровые входы (DI)
-   */
-  DI: IoPinSink[];
-  /**
-   * Цифровые выходы (DO)
-   */
-  DO: IoPinSink[];
-  /**
-   * Аналоговые входы (ADC)
-   */
-  ADC: IoPinSink[];
-}
-/**
- * Привязка вывода модуля ввода-вывода к устройству
- */
-export interface IoPinSink {
-  /**
-   * Формат 'устройство:вывод'
-   */
-  sink: string;
 }
 /**
  * Конфигурация IP-видеокамеры
@@ -541,7 +605,7 @@ export interface SectionConfig {
    */
   Name: string;
   /**
-   * Идентификатор секции (UUID)
+   * Идентификатор секции
    */
   ID: string;
   Type: SECTION_TYPE;
@@ -554,9 +618,130 @@ export interface SectionConfig {
    */
   Cols: number;
   /**
+   * Номер подключенной шины электропитания
+   */
+  PowerBus: number;
+  /**
    * Массив имён модулей ввода-вывода (IO), закреплённых за данной секцией
    */
   IOList: string[];
+  Channels: SectionChannelsConfig;
+  Lift?: SectionLiftConfig;
+  Storage?: SectionStorageConfig;
+  CellOpts?: SectionCellOptsConfig;
+}
+/**
+ * Группа всех каналов ввода/вывода секции
+ */
+export interface SectionChannelsConfig {
+  Door?: DoorChannelsConfig;
+  DeliveryBox?: DeliveryBoxChannelsConfig;
+  Storage?: StorageChannelsConfig;
+  Lift?: LiftChannelsConfig;
+  Led?: LedChannelsConfig;
+}
+/**
+ * Канал концевика двери секции
+ */
+export interface DoorChannelsConfig {
+  /**
+   * Канал концевика двери
+   */
+  Sensor: string;
+}
+/**
+ * Каналы отсека выдачи товара
+ */
+export interface DeliveryBoxChannelsConfig {
+  /**
+   * Канал замка / привода шторки отсека выдачи
+   */
+  Lock?: string;
+  /**
+   * Канал оптического датчика наличия / падения товара
+   */
+  Optic?: string;
+  /**
+   * Канал мониторинга отсека выдачи
+   */
+  Monitoring?: string;
+}
+/**
+ * Каналы полок и ячеек секции
+ */
+export interface StorageChannelsConfig {
+  /**
+   * Канал управления матрицей ячеек
+   */
+  MatrixCtrl?: string;
+  /**
+   * Список каналов строк и колонок для матричного управления
+   */
+  Port?: string[];
+  /**
+   * Список каналов датчиков состояния ячеек
+   */
+  Tamper?: string[];
+  /**
+   * Канал мониторинга ячеек
+   */
+  Monitoring?: string;
+}
+/**
+ * Каналы лифта выдачи товаров
+ */
+export interface LiftChannelsConfig {
+  /**
+   * Канал управления приводом лифта
+   */
+  MotorCtrl?: string;
+  /**
+   * Канал оптического датчика позиционирования уровня лифта
+   */
+  LevelSensor?: string;
+  /**
+   * Канал нижнего концевика лифта
+   */
+  BottomTamper?: string;
+  /**
+   * Канал верхнего концевика лифта
+   */
+  TopTamper?: string;
+  /**
+   * Канал мониторинга привода лифта
+   */
+  Monitoring?: string;
+}
+/**
+ * Параметры механизма лифта
+ */
+export interface SectionLiftConfig {
+  /**
+   * Максимальный этаж/уровень лифта
+   */
+  MaxLevel: number;
+}
+/**
+ * Параметры хранилища ячеек
+ */
+export interface SectionStorageConfig {
+  /**
+   * Шаблон имени канала датчиков ячеек
+   */
+  TamperPattern?: string;
+}
+/**
+ * Параметры адресации строк и колонок ячеек
+ */
+export interface SectionCellOptsConfig {
+  /**
+   * Индексы каналов строк
+   */
+  Row: number[];
+  /**
+   * Индексы каналов колонок
+   */
+  Col: number[];
 }
 
 /**
