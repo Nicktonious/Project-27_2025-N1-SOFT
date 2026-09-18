@@ -18,7 +18,11 @@ const { LIFT_BOTTOM_TAMPER_ON,
 const BOTTOM_LEVEL = 0;
 const SLEEP_BETWEEN_STEPS = 500;
 
+/**
+ * @implements {import("./srvSpiralSectionLift").ClassSpiralSectionLift}
+ */
 class ClassSpiralSectionLift {
+    /** @type {typeof import("./srvSpiralSectionLift").ClassSpiralSectionLift.STATE} */
     static STATE = {
         IDLE:                 'IDLE',
         ELEVATING_TO_COLLECT: 'ELEVATING_TO_COLLECT',
@@ -85,19 +89,23 @@ class ClassSpiralSectionLift {
      */
     constructor({ ProxyCh, channels, advOpts, globalState, sectionState, ProxyLogger }) {
         this.#_ProxyCh = ProxyCh;
+        /** @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['_ProxyLogger']} */
         this._ProxyLogger = ProxyLogger;
         this.#_Channels = channels;
         this.#_GlobalState = globalState;
         this.#_SectionState = sectionState;
+        /** @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['_BusNumber']} */
         this._BusNumber = advOpts.busNumber;
+        /** @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['_I_CurrBuffer']} */
         this._I_CurrBuffer = new ClassBuffer({ size: 5 });
+        /** @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['_V_VoltBuffer']} */
         this._V_VoltBuffer = new ClassBuffer({ size: 4 });
 
         this.Init();
     }
 
     /**
-     * @returns {import("./srvSpiralSectionLift").TypeSpiralSectionLiftEvents}
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['EVENTS']}
      */
     get EVENTS() {
         return ({
@@ -115,27 +123,45 @@ class ClassSpiralSectionLift {
         });
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['State']}
+     */
     get State() {
         return this.#_FSM.State;
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Status']}
+     */
     get Status() {
         return this.#_SectionState.Lift;
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Level']}
+     */
     get Level() {
         return this.#_Context.currentLevel;
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Available']}
+     */
     get Available() {
         return this.Status != LIFT_STATE.SHORT_CIRCUIT && this.Status != LIFT_STATE.OVERLOAD;
     } 
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Events']}
+     */
     get Events() {
         // TODO return proxy
         return this.#_Events;
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Init']}
+     */
     Init() {
         this.InitEventHandlers();
         this.Stop()
@@ -145,7 +171,9 @@ class ClassSpiralSectionLift {
             // });
 
     }
-
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['InitEventHandlers']}
+     */
     InitEventHandlers() {
         this.SetBottomTamperHandler();
         this.SetLevelHandler();
@@ -154,7 +182,9 @@ class ClassSpiralSectionLift {
         this.SetVoltageHandler();
         this.StartPSUWatch();
     }
-
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['SetBottomTamperHandler']}
+     */
     SetBottomTamperHandler() {
         /** Bottom tamper handler */
         const eventName = `${this.#_Channels.liftBottomTamper}-value`;
@@ -176,7 +206,9 @@ class ClassSpiralSectionLift {
         this.#_ChHandlers.set(eventName, handler);
         this.#_ProxyCh.Events.on(eventName, handler);
     }
-
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['SetTopTamperHandler']}
+     */
     SetTopTamperHandler() {
         /** Bottom tamper handler */
         const eventName = `${this.#_Channels.liftTopTamper}-value`;
@@ -199,6 +231,9 @@ class ClassSpiralSectionLift {
         this.#_ProxyCh.Events.on(eventName, handler);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['SetLevelHandler']}
+     */
     SetLevelHandler() {
         /** New level handler */
         const levelValueEventName = `${this.#_Channels.liftLevelSensor}-value`;
@@ -207,6 +242,9 @@ class ClassSpiralSectionLift {
         this.#_ProxyCh.Events.on(levelValueEventName, this.#_LevelHandler);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['SetCurrentHandler']}
+     */
     SetCurrentHandler() {
         const I_currEventName = `${this.#_Channels.current}-value`;
         const I_currHandler = (({ Value }) => {
@@ -218,6 +256,9 @@ class ClassSpiralSectionLift {
         this.#_ChHandlers.set(I_currEventName, I_currHandler);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['SetVoltageHandler']}
+     */
     SetVoltageHandler() {
         const V_EventName = `${this.#_Channels.voltage}-value`;
         const V_Handler = (({ Value }) => {
@@ -233,6 +274,9 @@ class ClassSpiralSectionLift {
         this.#_ChHandlers.set(V_EventName, V_Handler);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['HandleLevel']}
+     */
     HandleLevel({ Value }) {
         if (Value == this.#_LevelCachedValue) return;
         this.#_LevelCachedValue = Value;
@@ -263,6 +307,9 @@ class ClassSpiralSectionLift {
         }
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['StartPSUWatch']}
+     */
     StartPSUWatch() {
         if (this.#_PSUWatch) clearInterval(this.#_PSUWatch);
         
@@ -345,6 +392,9 @@ class ClassSpiralSectionLift {
         }, MONITOR_INTERVAL);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['ElevateToBottom']}
+     */
     async ElevateToBottom() {
         return new Promise((res, rej) => {
             if (this.#_Context.currentTask)
@@ -367,6 +417,9 @@ class ClassSpiralSectionLift {
         });
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['ElevateToLevel']}
+     */
     async ElevateToLevel(requiredLevel) {
         return new Promise((res, rej) => {
             if (this.#_Context.currentTask)
@@ -389,6 +442,9 @@ class ClassSpiralSectionLift {
         });
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['_ElevateToLevel']}
+     */
     async _ElevateToLevel(requiredLevel) {
         this.#_Context.requiredLevel = requiredLevel;
         const startLevel = this.#_Context.currentLevel; 
@@ -406,11 +462,17 @@ class ClassSpiralSectionLift {
         }           
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['OnTimeout']}
+     */
     OnTimeout() {
         this._ProxyLogger.Log({ level: 'D', msg: `[LIFT] Timeout 387` });
         this.#_FSM.Dispatch(this.EVENTS.ELEVATE_TIMEOUT);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['OnElevateTimeout']}
+     */
     async OnElevateTimeout() {
         this._ProxyLogger.Log({ level: 'D', msg: `[LIFT] Timeout` });
         let currState = this.CheckCurrentState();
@@ -449,6 +511,9 @@ class ClassSpiralSectionLift {
         }
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['_ElevateToBottom']}
+     */
     async _ElevateToBottom() {
         this.#_Context.requiredLevel = BOTTOM_LEVEL;
         if (this.#_ProxyCh.GetValue(this.#_Channels.liftBottomTamper) == LIFT_CONSTANTS.LIFT_BOTTOM_TAMPER_ON) {
@@ -465,24 +530,23 @@ class ClassSpiralSectionLift {
             this.#_FSM.Dispatch(this.EVENTS.FAULT, fault);
         }
     }
+
     /**
-     * @returns {Promise<Fault | null>}
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['ElevateUp']}
      */    
     async ElevateUp() {
         return this.Elevate({ cmd: 'Forward' });   
     }
+
     /**
-     * @returns {Promise<Fault | null>}
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['ElevateDown']}
      */
     async ElevateDown() {
         return this.Elevate({ cmd: 'Reverse' });
     }
 
     /**
-     * 
-     * @param {object} param0
-     * @param {string} param0.cmd 
-     * @returns 
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Elevate']}
      */
     async Elevate({ cmd }) {
         // if (!['Forward', 'Reverse'].includes(cmd))
@@ -529,14 +593,16 @@ class ClassSpiralSectionLift {
         throw new Fault({ code: FAULTS.LIFT_NO_POWER, critical: true });
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['LogTransaction']}
+     */
     LogTransaction(transName) {
         this.#_uTransactionsList.push(transName);  
         this._ProxyLogger.Log({ level: 'D', msg: `[LIFT] ${transName}` });   
     }
 
     /**
-     * 
-     * @param {Fault} fault 
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['UpdateStatus']}
      */
     UpdateStatus(fault) {
 
@@ -570,10 +636,7 @@ class ClassSpiralSectionLift {
     }
 
     /**
-     * 
-     * @param {string} cmd 
-     * @param {number} step 
-     * @returns {Promise}
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['MotorStep']}
      */
     MotorStep(cmd, { step }) {
         this.#_ProxyCh.SetValue(
@@ -592,7 +655,7 @@ class ClassSpiralSectionLift {
     }
 
     /**
-     * @returns {Promise}
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Stop']}
      */
     async Stop() {
         let current_0 = this.#_ProxyCh.GetValue(this.#_Channels.current);
@@ -622,6 +685,9 @@ class ClassSpiralSectionLift {
         throw new Fault({ code: FAULTS.IO_PORT_ERR, critical: true });
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['StopForce']}
+     */
     StopForce() {
         this.LogTransaction(this.#_Context.movingDir > 0 ? U_TRANSACTIONS.LIFT_STOP_AFTER_FWD : U_TRANSACTIONS.LIFT_STOP_AFTER_REV);
         
@@ -632,8 +698,7 @@ class ClassSpiralSectionLift {
     }
 
     /**
-     * 
-     * @param {import('./srvUtils.js').ClassFault} fault 
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['OnFault']}
      */
     async OnFault(fault) {
         this.#_Context.timer?.clear?.();
@@ -678,16 +743,25 @@ class ClassSpiralSectionLift {
         }
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['OffPSU']}
+     */
     OffPSU() {
         this._ProxyLogger.Log({ level: 'I', msg: '[LIFT] Выключение ИП' });
         this.#_ProxyCh.SetValue(this.#_Channels.psuWork, 0);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['OnPSU']}
+     */
     OnPSU() {
         this._ProxyLogger.Log({ level: 'I', msg: '[LIFT] Включение ИП' });
         this.#_ProxyCh.SetValue(this.#_Channels.psuWork, 1);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Idle']}
+     */
     async Idle() {
         try {
             await this.Stop();
@@ -702,12 +776,15 @@ class ClassSpiralSectionLift {
         this.#_Context.fallbackTimer?.clear?.()
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['OnStateChanged']}
+     */
     OnStateChanged({ eventName, state, prevState}) {
         this._ProxyLogger.Log({ level: 'D', msg: `[LIFT] STATE: ${prevState} --[${eventName}]--> ${state}` });
     }
+
     /**
-     * 
-     * @returns {string}
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['CheckCurrentState']}
      */
     CheckCurrentState(currVal) {
         /**@type {number|undefined} */
@@ -721,13 +798,15 @@ class ClassSpiralSectionLift {
         }
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['InBottomPos']}
+     */
     InBottomPos() {
         return this.#_ProxyCh.GetValue(this.#_Channels.liftBottomTamper) == LIFT_BOTTOM_TAMPER_ON;
     }
 
     /**
-     * @method
-     * @returns {boolean}
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['IsShorted']}
      */
     IsShorted() {
         const highI = this.#_ProxyCh.GetValue(this.#_Channels.current) > CURRENT_RANGE.SHORT[0];
@@ -735,10 +814,16 @@ class ClassSpiralSectionLift {
         return  highI || lowV;
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Abort']}
+     */
     Abort() {
         this.#_FSM.Dispatch(this.EVENTS.ABORT);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Reset']}
+     */
     Reset() {
         this.#_FSM.Reset();
         this.#_SectionState.Lift = LIFT_STATE.OK;
@@ -773,6 +858,9 @@ class ClassSpiralSectionLift {
         this.#_Context.currentTask = null;
     }
 
+    /**
+     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Test_1']}
+     */
     async Test_1(fpath, level, times) {
         let writer = new BufferedCsvWriter(fpath);
         await this.ElevateToBottom();

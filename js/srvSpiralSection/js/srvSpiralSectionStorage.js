@@ -22,8 +22,12 @@ const STATE = {
     RUNNING_MOTOR: 'RUNNING_MOTOR'
 }
 
+/**
+ * @implements {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage}
+ */
 class ClassSpiralSectionStorage {
 
+    /** @type {typeof import("./srvSpiralSectionStorage").ClassSpiralSectionStorage.STATE} */
     static STATE = STATE;
 
     /**@type {import("./srvSpiralSection").TypeProxyCh} */
@@ -79,10 +83,12 @@ class ClassSpiralSectionStorage {
      */
     constructor({ ProxyCh, channels, advOpts, sectionState, ProxyLogger }) {
         this.#_ProxyCh = ProxyCh;
+        /** @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['_ProxyLogger']} */
         this._ProxyLogger = ProxyLogger;
         this.#_Channels = channels;
         this.#_GlobalState = advOpts.globalState;
         this.#_SectionState = sectionState;
+        /** @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['_BusNumber']} */
         this._BusNumber = advOpts.busNumber;
         let { rows, cols } = advOpts.size;
         this.#_Context = {
@@ -100,14 +106,15 @@ class ClassSpiralSectionStorage {
                 status: SPIRAL_CELL_STATE.OK
             }))
         };
+        /** @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['_I_CurrBuffer']} */
         this._I_CurrBuffer = new ClassBuffer({ size: 2 });
+        /** @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['_V_VoltBuffer']} */
         this._V_VoltBuffer = new ClassBuffer({ size: 3 });
         this.Init();
     }
 
     /**
-     * @getter
-     * @returns {import("./srvSpiralSectionStorage").TypeSpiralSectionUnitEvents}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['EVENTS']}
      */
     get EVENTS() {
         return ({
@@ -124,21 +131,26 @@ class ClassSpiralSectionStorage {
         });
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['Events']}
+     */
     get Events() {
         // TODO: add proxy
         return this.#_Events;
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['MaxLevel']}
+     */
     get MaxLevel() { return this.#_Context?.rows; }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['State']}
+     */
     get State() { return this.#_FSM.State; }
 
     /**
-     * 
-     * @param {object} param0
-     * @param {number} param0.row
-     * @param {number} param0.column 
-     * @returns {boolean}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['IsAvailable']}
      */
     IsAvailable({ row, column }) {
         const ind = this.PosToInd({ row, col: column });
@@ -146,11 +158,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * 
-     * @param {object} param0
-     * @param {number} param0.row
-     * @param {number} param0.column 
-     * @returns {boolean}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['IsCheckable']}
      */
     IsCheckable({ row, column, col }) {
         column = column ?? col;
@@ -162,6 +170,9 @@ class ClassSpiralSectionStorage {
         return [SPIRAL_CELL_STATE.OK, SPIRAL_CELL_STATE.ERR_TAMPER_BAD_POS, SPIRAL_CELL_STATE.ACTUATOR_NO_POWER].includes(this.#_SectionState.Cells[ind].Status);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['RowIterator']}
+     */
     *RowIterator(rowIndex) {
         const { rows, cols, units } = this.#_Context;
 
@@ -176,6 +187,9 @@ class ClassSpiralSectionStorage {
         }
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['RowIndexIterator']}
+     */
     *RowIndexIterator(rowIndex) {
         const { rows, cols, units } = this.#_Context;
 
@@ -190,6 +204,9 @@ class ClassSpiralSectionStorage {
         }
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['ColIterator']}
+     */
     *ColIterator(colIndex) {
         const { rows, cols, units } = this.#_Context;
 
@@ -201,6 +218,9 @@ class ClassSpiralSectionStorage {
         }
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['Init']}
+     */
     Init() {
         this.InitEventHandlers();
         this.StartPSUWatch();
@@ -214,6 +234,9 @@ class ClassSpiralSectionStorage {
         });
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['InitEventHandlers']}
+     */
     InitEventHandlers() {
         this.SetTamperHandlers();
         this.SetCurrentHandler();
@@ -221,8 +244,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * @method
-     * @description * Инициализирует обработчики событий с тамперов спиралей для определения факта выдачи единицы товара
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['SetTamperHandlers']}
      */
     SetTamperHandlers() {
         /** Tamper trigger handler */
@@ -242,6 +264,9 @@ class ClassSpiralSectionStorage {
         }
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['SetCurrentHandler']}
+     */
     SetCurrentHandler() {
         const I_currEventName = `${this.#_Channels.current}-value`;
         const I_currHandler = (({ Value }) => {
@@ -253,6 +278,9 @@ class ClassSpiralSectionStorage {
         this.#_ChHandlers.set(I_currEventName, I_currHandler);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['SetVoltageHandler']}
+     */
     SetVoltageHandler() {
         const V_voltEventName = `${this.#_Channels.voltage}-value`;
         const V_voltHandler = (({ Value }) => this._V_VoltBuffer.push(Value)).bind(this);
@@ -261,6 +289,9 @@ class ClassSpiralSectionStorage {
         this.#_ChHandlers.set(V_voltEventName, V_voltHandler);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['StartPSUWatch']}
+     */
     StartPSUWatch() {
         if (this.#_PSUWatch) clearInterval(this.#_PSUWatch);
 
@@ -324,6 +355,9 @@ class ClassSpiralSectionStorage {
         }, MONITOR_INTERVAL);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['ClearOverloadStatus']}
+     */
     ClearOverloadStatus() {
         for (let u of this.#_Context.units) {
             if (u.status == SPIRAL_CELL_STATE.OVERLOAD_I) 
@@ -331,15 +365,15 @@ class ClassSpiralSectionStorage {
         }
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['OnStateChanged']}
+     */
     OnStateChanged({ eventName, state, prevState}) {
         this._ProxyLogger.Log({ level: 'D', msg: `[STORAGE] STATE: ${prevState} --[${eventName}]--> ${state}` });
     }
 
     /**
-     * @method
-     * @description Обработчик события выдачи единицы ТМЦ
-     * @param {object} param0
-     * @param {number} param0.index 
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['OnDispensedSingle']}
      */
     async OnDispensedSingle({ tamperInd }) {
         this._ProxyLogger.Log({ level: 'D', msg: `[STORAGE] Выдана 1 ед. тмц` });
@@ -370,9 +404,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * @method
-     * @description Обработчик таймаута выдачи
-     * @param {TypeCoords} param0 
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['OnTimeout']}
      */
     async OnTimeout({ index }) {
         this._ProxyLogger.Log({ level: 'D', msg: `[Storage] Таймаут выдачи. Index: ${index}` });
@@ -389,9 +421,7 @@ class ClassSpiralSectionStorage {
     // }
 
     /**
-     * @method
-     * @description Обработчик ошибок секции
-     * @param {StorageFault} fault 
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['OnFault']}
      */
     async OnFault(fault) {
         this.#_Context.dispenseTimer?.clear?.();
@@ -454,19 +484,24 @@ class ClassSpiralSectionStorage {
         }
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['OffPSU']}
+     */
     OffPSU() {
         this._ProxyLogger.Log({ level: 'I', msg: '[STORAGE] Выключение ИП' });
         this.#_ProxyCh.SetValue(this.#_Channels.psuWork, 0);
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['OnPSU']}
+     */
     OnPSU() {
         this._ProxyLogger.Log({ level: 'I', msg: '[STORAGE] Включение ИП' });
         this.#_ProxyCh.SetValue(this.#_Channels.psuWork, 1);
     }
 
     /**
-     * @method
-     * @description Переход в IDLE состояние 
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['Idle']}
      */
     async Idle(/*{ index }*/) {
         this.#_Context.fallbackTimer?.clear();
@@ -491,16 +526,15 @@ class ClassSpiralSectionStorage {
         }
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['EmergencyOff']}
+     */
     EmergencyOff() {
 
     }
 
     /**
-     * @method
-     * @description Метод для внешнего вызова выдачи товара из спирального механизма
-     * @param {import("./srvSpiralSection").TypeOrder} order
-     * @param {boolean} [manual=false] 
-     * @returns {Promise}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['Dispense']}
      */
     async Dispense(order, manual=false) {
         return new Promise((res, rej) => {
@@ -532,10 +566,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * @method
-     * @description Метод для внешнего вызова проверки спирали
-     * @param {import("./srvSpiralSection").TypeOrder} order
-     * @returns 
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['TestSpiral']}
      */
     async TestSpiral(order) {
         return new Promise((res, rej) => {
@@ -554,13 +585,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * @method
-     * @description Метод для внешнего вызова вращения мотора на заданное время
-     * @param {object} param0 
-     * @param {number} param0.row 
-     * @param {number} param0.column
-     * @param {number} param0.duration Время вращения в миллисекундах
-     * @returns {Promise}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['RunMotor']}
      */
     async RunMotor({ row, column, duration }) {
         return new Promise((res, rej) => {
@@ -579,10 +604,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * @method
-     * @description Внутренний метод выдачи товара из спирального механизма, который вызывается FSM при обработке команды на выдачу
-     * @param {import("./srvSpiralSection").TypeOrder} order 
-     * @param {boolean} [manual=false] 
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['_Dispense']}
      */
     async _Dispense(order, manual=false) {
         const index = this.PosToInd({ row: order.row, col: order.column });
@@ -604,12 +626,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * @method
-     * @description Внутренний метод вращения мотора на время, который вызывается FSM
-     * @param {object} param0 
-     * @param {number} param0.row
-     * @param {number} param0.column
-     * @param {number} param0.duration
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['_RunMotor']}
      */
     async _RunMotor({ row, column, duration }) {
         const index = this.PosToInd({ row, col: column });
@@ -628,9 +645,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * @method
-     * @description Метод для проверки электрического тока в цепи мотора, который может указывать на различные состояния механизма
-     * @returns {TypeElectrCurrentState}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['CheckCurrentState']}
      */
     CheckCurrentState(currVal) {
         /**@type {number} */
@@ -646,9 +661,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * 
-     * @param {number} index 
-     * @param {'single' | 'row' | 'col' | 'all'} scope 
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['UnitsByScope']}
      */
     *UnitsByScope(index, scope) {
         const { row, col } = this.#_Context.units[index].coords;
@@ -676,13 +689,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * @method
-     * @description Метод для обновления контекста секции после попытки выдачи товара, который может обновлять количество отгруженных единиц, статус ячеек и тд в зависимости от переданных параметров
-     * @param {Object} param1 
-     * @param {number} [param1.dispensed=0] 
-     * @param {string} [param1.scope='single'] 
-     * @param {import("./srvSpiralSectionStates").SpiralCellStateKeys} param1.status 
-     * @param {any[]} [param1.except=[]] 
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['UpdateStorageContext']}
      */
     UpdateStorageContext({ index }, { dispensed = 0, scope='single', status, except = [] }) {
         if (this.#_Context.currentOrder)
@@ -701,32 +708,30 @@ class ClassSpiralSectionStorage {
         }
     }
 
-
     /**
-     * @method
-     * @description Метод для получения информации о ячейке/спирали по ее индексу
-     * @param {object} param0
-     * @param {number} param0.index - номер ячейки/спирали 
-     * @returns {TypeUnit|null}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['GetStorageInfo']}
      */
     GetStorageInfo({ index }) {
         return { ...this.#_SectionState.Cells[index].Status };
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['SetOutOfService']}
+     */
     SetOutOfService() {
         // TODO
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['LogTransaction']}
+     */
     LogTransaction(transName) {
         this.#_uTransactionsList.push(transName);  
         this._ProxyLogger.Log({ level: 'D', msg: `[STORAGE] ${transName}` });   
     }
 
     /**
-     * @member 
-     * @description Метод для поэтапного включения мотора спирального механизма с проверкой тока и сигналов с тамперов для определения факта начала выдачи товара и исправности механизма
-     * @param {number} index 
-     * @returns {Promise}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['MotorOnPhased']}
      */
     async MotorOnPhased(index) {
         const { row } = this.IndexToPos(index);
@@ -778,13 +783,7 @@ class ClassSpiralSectionStorage {
     } 
 
     /**
-     * @method
-     * @description Метод для выполнения этапа включения/выключения мотора
-     * @param {string} cmd 
-     * @param {object} param1
-     * @param {number} param1.index 
-     * @param {number} param1.step
-     * @returns {}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['MotorStep']}
      */
     async MotorStep(cmd, param1) {
         const { index, step } = param1 ?? {};
@@ -809,11 +808,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * @method
-     * @description Метод для проверки корректности позиции спирального механизма 
-     * @param {object} param0
-     * @param {number} param0.row 
-     * @returns {Promise}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['_TestSpiral']}
      */
     async _TestSpiral({ row, column}) {
         const index = this.PosToInd({ row, col: column });
@@ -858,10 +853,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * @method
-     * @description Метод для поэтапного выключения мотора спирального механизма с проверкой тока для определения факта окончания выдачи товара и исправности механизма
-     * @param {number} index 
-     * @returns {Promise}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['MotorOff']}
      */
     async MotorOff(index) {
         let current_0 = this.#_ProxyCh.GetValue(this.#_Channels.current); 
@@ -882,6 +874,9 @@ class ClassSpiralSectionStorage {
         await this.MotorStep('Off', { index, step: 2 });
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['MotorOffAll']}
+     */
     async MotorOffAll() {
         return this.MotorStep('Off', { index: undefined, step: undefined });
         // await sleep(TIME_BETWEEN_STEPS);
@@ -889,8 +884,7 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * @method
-     * @returns {boolean}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['IsShorted']}
      */
     IsShorted() {
         return  /*this._I_CurrBuffer.Filter()*/ this.#_ProxyCh.GetValue(this.#_Channels.current) > CURRENT_RANGE.SHORT[0] ||
@@ -898,42 +892,29 @@ class ClassSpiralSectionStorage {
     }
 
     /**
-     * @method
-     * @description Метод для конвертации линейного индекса в индексы строки и столбца
-     * @param {number} index Линейный индекс (0-based).
-     * @returns {{row: number, column: number}} Объект, содержащий строку и столбец.
-    */
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['IndexToPos']}
+     */
     IndexToPos(index, _width) {
         let width = _width ?? this.#_Context.cols;
         return { row: Math.floor(index / width), col: index % width };
     }
 
     /**
-     * @method
-     * @description Метод для конвертации координат ячейки/спирали в ее линейный индекс
-     * @param {object} param0
-     * @param {number} param0.row
-     * @param {number} param0.col    
-     * @returns {number}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['PosToInd']}
      */
     PosToInd({ row, col, column }) {
         return (row * this.#_Context.cols) + (col ?? column);
     }
 
     /**
-     * @method
-     * @description Метод для получения уровня (этажа) спирального механизма по индексу ячейки/спирали
-     * @param {number} index 
-     * @returns {number}
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['GetLevelByIndex']}
      */
     GetLevelByIndex(index) {
         return this.#_Context.rows - Math.floor(index / this.#_Context.cols);
     }
 
     /**
-     * @method
-     * @description Метод для обновления статуса ячеек в контексте секции в зависимости от типа ошибки, которая произошла при попытке выдачи товара
-     * @param {StorageFault} fault 
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['UpdateStatus']}
      */
     UpdateStatus(fault) {
         if (!(fault instanceof StorageFault)) return;
@@ -969,14 +950,16 @@ class ClassSpiralSectionStorage {
         }
     }
 
+    /**
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['Abort']}
+     */
     Abort() {
         if (this.#_Context.currentOrder)
             this.#_Context.currentOrder.aborted = true;
     }
 
     /**
-     * @method
-     * @description Метод для сброса секции в начальное состояние, который может использоваться при инициализации или после устранения ошибки для восстановления работоспособности секции
+     * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['Reset']}
      */
     Reset() {
         this.#_FSM.Reset();
