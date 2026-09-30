@@ -132,10 +132,11 @@ class MqttController extends EventEmitter {
 // ==========================================
 
 class ShutdownManager extends EventEmitter {
-    constructor({ config, buzzer }) {
+    constructor({ config, buzzer, onPreShutdown }) {
         super();
         this.config = config ?? {};
         this.isShutdownInProgress = false;
+        this.onPreShutdown = onPreShutdown;
         /** @type {BuzzerCtrl} */
         this.buzzer = buzzer; 
     }
@@ -189,9 +190,9 @@ class ShutdownManager extends EventEmitter {
             // await runCommand(POWEROFF_INTERNAL_CMD);
 
             // Execute pre-shutdown hook (e.g. closing MQTT connection) before local system reboot/halt
-            if (typeof this.config.onPreShutdown === 'function') {
+            if (typeof this.onPreShutdown === 'function') {
                 console.log('[ShutdownManager] Triggering pre-shutdown hook...');
-                await this.config.onPreShutdown();
+                await this.onPreShutdown();
             }
             if (command === 'reboot') {
                 // В случае reboot выдерживается короткая пауза, и питание подаётся повторно
@@ -242,7 +243,7 @@ class ShutdownManagerFacade {
     /**
      * @param {object} config Configuration parameters to customize topics, IPs, timeouts, and hardware command strings
      */
-    constructor(config = {}) {
+    constructor({config = {}, buzzer}) {
         // Build settings, prioritizing user-provided options, then environment variables, then sensible defaults
         this.config = {
             mqttBrokerUrl: config.mqttBrokerUrl ?? `mqtt://'127.0.0.1':1883`,
@@ -273,7 +274,8 @@ class ShutdownManagerFacade {
         });
 
         this.shutdownManager = new ShutdownManager({
-            ...this.config,
+            config: this.config,
+            buzzer,
             onPreShutdown: async () => {
                 await this.Destroy();
             }
