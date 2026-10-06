@@ -1,13 +1,21 @@
 {
   "type": "commonjs",
+  "scripts": {
+    "gen:config": "json2ts js/srvStatesController/schema/MachineConfig/machine_config.schema.json js/srvStatesController/ts/IMachineConfig.ts --cwd=js/srvStatesController/schema/MachineConfig --enableConstEnums=false",
+    "gen:monitoring": "json2ts js/srvStatesController/schema/MachineMonitoring/global_monitoring.schema.json js/srvStatesController/ts/IGlobalMonitoring.ts --cwd=js/srvStatesController/schema/MachineMonitoring --enableConstEnums=false",
+    "gen:states": "json2ts js/srvStatesController/schema/MachineState/global_states.schema.json js/srvStatesController/ts/IGlobalStates.ts --cwd=js/srvStatesController/schema/MachineState --enableConstEnums=false",
+    "gen:all": "npm run gen:config && npm run gen:monitoring && npm run gen:states"
+  },
   "dependencies": {
     "dotenv": "^17.4.2",
     "eventemitter2": "^6.4.9",
     "mqtt": "^5.15.1",
-    "tsx": "^4.22.4",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@apidevtools/json-schema-ref-parser": "^15.5.0",
+    "json-schema-to-typescript": "^15.0.4",
+    "tsx": "^4.22.4",
     "@types/node": "^25.9.1"
   }
 }
