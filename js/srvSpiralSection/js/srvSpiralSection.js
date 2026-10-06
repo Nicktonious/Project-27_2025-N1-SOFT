@@ -198,6 +198,13 @@ class ClassSpiralSection extends EventEmitter2 {
      * @type {import("./srvSpiralSection").ClassSpiralSection['_Execute']}
      */
     async _Execute(_orders) {
+        // Запасная проверка нормального состояния секции. По задумке, не должна срабатывать, а должна отсекаться ProxyCom
+        if (this.#_Lift.IsShorted()) {
+            for (let order of _orders) {
+                this.emit('result', { ok: false, cell: { row: order.row, column: order.column } });
+            }
+            return;
+        }
         try {
             this.#_SectionState.Status = SECTION_STATUS.DISPENSE;
             // Проверка двери и люка
@@ -265,7 +272,7 @@ class ClassSpiralSection extends EventEmitter2 {
                 }
             }
             
-            try {
+            if (this.#_Lift.Level != 0 && this._Context.results.length) try {
                 await sleep(100);
                 this._ProxyLogger.Log({ level: 'D', msg: `[LIFT] Для выдачи лифт спускается на 0-й уровень` });
                 if (!this._Context.aborted)
