@@ -4,7 +4,7 @@ const { GLOBAL_MACHINE_STATE, /*BUS_MEAS_STATE,*/ AVAILABLE_STATE, SECTION_STATU
 
 const EventEmitter = require('eventemitter2').EventEmitter2;
 
-const COMMANDS = {
+/*const COMMANDS = {
     GetItem: 'GetItem', //– запрос на выдачу ТМЦ из указанных ячеек;
     GetAll: 'GetAll', // – выдача ТМЦ, открытие всех ячеек (массив Cells в данном случае не учитывается);
     SetItem: 'SetItem', // – загрузка ТМЦ в указанные ячейки;
@@ -14,7 +14,7 @@ const COMMANDS = {
     Reboot: 'Reboot', //– перезагрузка аппарата;
     SetConfig: 'SetConfig', ///– загрузка конфигурационного файла;
     Maintenance: 'Maintenance', //– перевод аппарата в режим обслуживания
-}
+}*/
 class ClassProxySection {
     /**
      * 
@@ -45,14 +45,21 @@ class ClassProxySection {
      */
     ProcessTransaction({ Transaction }) {
         if (!this.GlobalStateAllowsCommand()) return;
-        const { ID, Orders, UserID, Source } = Transaction;
+        const { ID, Orders } = Transaction;
         
-        // for (const _order of Orders) {
-        return Orders.map(_order => {
-            const order = this.ProcessOrder(ID, _order);
-            return { section: _order.Target.id, order };
-            // this.RouteCommand(order);
-        }).filter(Boolean);
+        let ordersFiltered = [];
+        for (let _order of Orders) {
+            if (this.IsSectionAvailable(_order.Target)) {
+                ordersFiltered.push({ section: _order.Target.id, _order });
+            } else {
+                // this._Logger.Log({ level: 'W', msg: `Команда ${_order.Command} для секции ${_order.Target.name} не разрешена` });
+                for (let Cell of _order.Cells) {
+                    const response = this.CreateResponse({ Transaction, Target: _order.Target, Cell });
+                    this.RouteResponse(response);
+                }
+            }
+        }
+        return ordersFiltered;
     }
 
     /**
@@ -76,23 +83,14 @@ class ClassProxySection {
 
     /**
      * @method
-     * @param {import("./Messages").Order} order 
+     * @param {import("./Messages").TypeTarget} target
+     * @returns {boolean} 
      */
-    ProcessOrder(id, order) {
-        // TODO: фильтр сообщений для Target
-        // let ID = v4();
-        // if (order?.Command?.toLowerCase() == COMMANDS.GetItem.toLowerCase()) {
-            // const section = this.GetSectionByTarget(_order.Target);
-        const tid = order.Target.id;
-        const tid2 = id == process.env.SPIRAL_SECTION_ID ? 0 : 1;
-        const sectionState = this._StateController.Machine.States.Sections[tid2];
-        if (!sectionState) return;
-        
-        if (sectionState.Status != SECTION_STATUS.IDLE) return;
-        if (sectionState.IsAvailable != AVAILABLE_STATE.YES) return;
+    IsSectionAvailable(target) {
+        const sectionId = target.id == process.env.SPIRAL_SECTION_ID ? 0 : 1;
 
-        return { ID: id, ...order };
-        // }
+        return (this.SectionStateAllowsCommand(sectionId) &&
+                this.SectionPSUAllowsCommand(sectionId));
     }
     
     /**
@@ -103,7 +101,6 @@ class ClassProxySection {
         if (order.Cells.length == 0) return false;
         const section = this._StateController.Machine.States.Sections[order.Target.name];
         if (!section) return false;
-        // const sectionState = this._StateController.sections.get(section.name);
         const hasFaultCells = order.Cells.some(cell => !sectionState.isCellAvailable(cell));
         return hasFaultCells;
     }
@@ -150,16 +147,14 @@ class ClassProxySection {
 
     /**
      * 
-     * @param {import("./Messages").Transaction} command 
+     * @param {import("./Messages").Transaction} Transaction 
      * @param {import('./Messages').TypeTarget} Target 
      * @param {import('./Messages').Cell} Cell 
      * @returns {import("./Messages").Response}
      */
-    CreateResponse(command, Target, Cell) {
+    CreateResponse({Transaction, Target, Cell }) {
         const ID = randomUUID();
-        // command.Orders.
-        const { ID: ParentID } = command;
-        // ParentID
+        const { ID: ParentID } = Transaction;
         return {
             Response: {
                 ID,					 // уникальный идентификатор
@@ -167,8 +162,7 @@ class ClassProxySection {
                 Timestamp: new Date().getTime(),  //new Date().toString().slice(0, 33)  // время выполнения транзакции
                 Target: Target,
                 Cell,
-                Result: 'OK',                     
-                Message: 'Transaction successful'     
+                Result: 'FAIL',                      
             }
         }
     }
@@ -176,9 +170,19 @@ class ClassProxySection {
     GlobalStateAllowsCommand() {
         const { Mode, Env } = this._StateController.Machine.States;
         return Mode == GLOBAL_MACHINE_STATE.OK;
-            // && [...Env.values()].some(sensor => sensor.critical && sensor.state != MEAS_STATE.OK);
-            
+    }
+
+    SectionStateAllowsCommand(sectionId) {
+        const sectionState = this._StateController.Machine.States.Sections[sectionId];
+        if (sectionState?.Status != SECTION_STATUS.IDLE 
+            ||sectionState?.IsAvailable != AVAILABLE_STATE.YES) return false;
+        return true;
+    }
+
+    SectionPSUAllowsCommand(sectionId) {
+        const psuId = sectionId + 2;
+        let psuState = this._StateController.Machine.States.PSU?.[psuId];
+        return !(psuState?.ShortCircuit == 'YES' || psuState?.Enabled == 'NO');
     }
 }
-
 module.exports = ClassProxySection;
