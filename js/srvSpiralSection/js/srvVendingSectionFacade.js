@@ -4,6 +4,21 @@ const { ClassSpiralSection } = require("./srvSpiralSection");
 const { SECTION_TYPE } = require("../../srvStatesController/ts/IMachineConfig");
 
 let sleep = require('timers/promises').setTimeout;
+// TODO: вынести в отдельный файл
+const COMMANDS = {
+    GetItem: 'GetItem', //– запрос на выдачу ТМЦ из указанных ячеек;
+    GetAll: 'GetAll', // – выдача ТМЦ, открытие всех ячеек (массив Cells в данном случае не учитывается);
+    SetItem: 'SetItem', // – загрузка ТМЦ в указанные ячейки;
+    SetLiftLevel: 'SetLiftLevel',
+    RotateSpiral: 'RotateSpiral',
+    OpenDeliveryBox: 'OpenDeliveryBox',
+    SetAll: 'SetAll', // – загрузка ТМЦ во все ячейки по загруженной конфигурации;
+    GetStatus: 'GetStatus',// – получение статуса аппарата;
+    GetWeight: 'GetWeight', 
+    Reboot: 'Reboot', //– перезагрузка аппарата;
+    SetConfig: 'SetConfig', ///– загрузка конфигурационного файла;
+    Maintenance: 'Maintenance', //– перевод аппарата в режим обслуживания
+}
 
 /**
  * Класс-фасад спиральной вендинговой секции.
@@ -161,9 +176,37 @@ class ClassVendingSectionFacade {
             return this.HandleErr(new Error('Выполняется предыдущая операция'));
         this.#_Logger.TransactionID = ID;
         this._Context.order = { ID, Cells };
-        return (mock ? this._ExecuteMock(Cells) : this.#_Section.Execute(Cells)).finally(() => {
+        if (mock) return this._ExecuteMock(Cells);
+        try {
+            const cmd = Command.toLowerCase();
+
+            if (cmd === COMMANDS.GetItem.toLowerCase()) {
+                return await this.#_Section.Execute(Cells);
+            }
+            if (cmd === COMMANDS.SetLiftLevel.toLowerCase()) {
+                const res = await this.#_Section.ElevateLift(transaction.Level);
+                this.OnSectionResult({ ok: true, cell: null });
+                return res;
+            }
+            if (cmd === COMMANDS.RotateSpiral.toLowerCase()) {
+                // выполняется вращение только одной спирали
+                const targetCell = Cells?.[0] ? { row: Cells[0].row, column: Cells[0].column } : null;
+                const res = await this.#_Section.ManualRotateSpiral(Cells[0]);
+                this.OnSectionResult({ ok: true, cell: targetCell });
+                return res;
+            }
+            if (cmd === COMMANDS.OpenDeliveryBox.toLowerCase()) {
+                const res = await this.#_Section.OpenBox();
+                this.OnSectionResult({ ok: true, cell: null });
+                return res;
+            }
+        } catch (e) {
+            const targetCell = Cells?.[0] ? { row: Cells[0].row, column: Cells[0].column } : null;
+            this.OnSectionResult({ ok: false, cell: targetCell });
+            return this.HandleErr(e, `Ошибка при выполнении ${Command}`);
+        } finally {
             this._Context.order = null;
-        });
+        }
     }
 
     /**
@@ -194,11 +237,19 @@ class ClassVendingSectionFacade {
                     Timestamp: new Date().getTime(),
                     Target: this._Target,
                     Cell: cell,
-                    Result:  ok ? 'OK' : 'FAIL',           
-                    Message: ok ? 'Операция выполнена успешно' : 'Ошибка при выдаче ТМЦ'
+                    Result:  ok ? 'OK' : 'FAIL'
                 }  
             });
         };
+    }
+
+    /**
+     * Логирует ошибку операции
+     * @param {Error|any} e Объект ошибки
+     * @param {string} [msg=''] Поясняющее сообщение
+     */
+    HandleErr(e, msg = '') {
+        this.#_Logger?.Log({ level: 'E', msg: `${msg}: ${e?.message ?? e}`.trim() });
     }
 
     /**
