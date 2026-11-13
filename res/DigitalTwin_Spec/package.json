@@ -1,0 +1,14 @@
+{
+  "name": "digitaltwin_spec",
+  "version": "1.0.0",
+  "description": "Директория со спецификацией на цифровой двойник Вендингового Аппарата на MQTT",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "gen.js",
+  "scripts": {
+    "gen": "node gen.js -o \"Спецификация цифрового двойника MQTT v2.pdf\"",
+    "build": "node gen.js -o \"Спецификация цифрового двойника MQTT v2.pdf\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

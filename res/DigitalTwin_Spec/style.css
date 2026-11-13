@@ -46,6 +46,12 @@ h1 {
     page-break-after: avoid;
 }
 
+/* Каждый раздел (глава) начинается с новой страницы */
+h1:not(:first-of-type) {
+    break-before: page;
+    page-break-before: always;
+}
+
 h2 {
     font-size: 13.5pt;
     font-weight: bold;
