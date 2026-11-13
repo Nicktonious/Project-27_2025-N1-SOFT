@@ -1,7 +1,9 @@
 const { EventEmitter2 } = require("eventemitter2");
-const { default: BaseSectionState } = require("../../srvStatesController/js/srvBaseSectionState");
 const { ClassSpiralSection } = require("./srvSpiralSection");
+const { SpiralStateAdapter } = require("./srvSpiralStateAdapter");
+const { SpiralMonitoringAdapter } = require("./srvSpiralMonitoringAdapter");
 const { SECTION_TYPE } = require("../../srvStatesController/ts/IMachineConfig");
+const { default: StatesController } = require("../../srvStatesController/js/srvSectionStateController");
 
 let sleep = require('timers/promises').setTimeout;
 // TODO: вынести в отдельный файл
@@ -45,12 +47,27 @@ class ClassVendingSectionFacade {
      * Идентификатор и имя целевой секции для сообщений брокера
      * @type {import('../../srvProxySection/js/Messages').TypeTarget}
      */
-    _Target = null;
+    _Id = null;
+
     /**
-     * Состояние секции для системы мониторинга и отчетов
-     * @type {BaseSectionState}
+     * @type {import("../../srvStatesController/ts/IGlobalState").SpiralSectionState}
      */
     #_SectionState = null;
+    /**
+     * Состояние секции для системы мониторинга и отчетов
+     * @type {import("../../srvStatesController/ts/IGlobalMonitoring").SpiralSectionMonitoring}
+     */
+    #_SectionMonitoring = null;
+    /**
+     * Адаптер состояния секции (Anti-Corruption Layer)
+     * @type {SpiralStateAdapter}
+     */
+    #_StateAdapter = null;
+    /**
+     * Адаптер мониторинга моторесурса секции
+     * @type {SpiralMonitoringAdapter}
+     */
+    #_MonitoringAdapter = null;
     /**
      * Экземпляр контроллера механизмов спиральной секции (лифт, хранилище, люк выдачи)
      * @type {ClassSpiralSection}
@@ -64,61 +81,110 @@ class ClassVendingSectionFacade {
 
     /**
      * Создает экземпляр фасада спиральной секции.
-     * Выполняет парсинг конфигурации автомата (`machineConfig`), инициализирует каналы ввода-вывода
-     * для лифта, хранилища спиралей и окна выдачи, создает экземпляр `ClassSpiralSection`
-     * и подписывается на события результатов выдачи.
+     * Инкапсулирует связывание StatesController (Config, Monitoring, States) и логики спиральной секции.
      * 
      * @param {object} [param0={}] Параметры инициализации фасада
-     * @param {import("./srvSpiralSection").TypeProxyCh} [param0.ProxyCh] Прокси-канал для работы с шиной ввода-вывода
-     * @param {import("./srvSpiralSection").TypeSpiralSectionOpts} [param0.advOpts] Дополнительные параметры конфигурации спиральной секции
-     * @param {import('../../srvProxySection/js/Messages').TypeTarget} [param0.target] Метаданные целевой секции (ID и имя)
-     * @param {BaseSectionState} [param0.sectionState] Объект состояния секции
-     * @param {import("../../srvStatesController/js/srvSectionStateController")} [param0.globalState] Контроллер глобального состояния автомата
+     * @param {import("./srvSpiralSection").TypeProxyCh} param0.ProxyCh Прокси-канал для работы с шиной ввода-вывода
+     * @param {string|number} param0.sectionId ID секции
+     * @param {import("../../srvStatesController/js/srvSectionStateController").default} [param0.StatesController] Контроллер глобального состояния автомата
      * @param {ClassLoggerDecorator|import("./srvSpiralSection").TypeProxyLogger} [param0.ProxyLogger] Логгер для записи диагностических сообщений
-     * @param {import("../../srvStatesController/ts/IMachineConfig").MachineConfig} [param0.machineConfig] Конфигурация автомата
+     * @param {import("../../srvStatesController/ts/IMachineConfig").MachineConfig} [param0.machineConfig] Конфигурация автомата (для тестового режима без StatesController)
      */
-    constructor({ ProxyCh, advOpts, target, sectionState, globalState, ProxyLogger, machineConfig } = {}) {
-        this._Target = target;
-        this.#_Logger = ProxyLogger;
-        this.#_SectionState = sectionState;
+    constructor({ ProxyCh, sectionId, StatesController, ProxyLogger, machineConfig } = {}) {
+        if (typeof sectionId !== 'string' && typeof sectionId !== 'number') {
+            throw new Error('ClassVendingSectionFacade: sectionId обязателен');
+        }
+        if (!ProxyCh) {
+            throw new Error('ClassVendingSectionFacade: ProxyCh обязателен');
+        }
 
-        const spiralConf = machineConfig.Sections.find(s => s.Type === SECTION_TYPE.SPIRAL);
-        const psuConf = machineConfig.Power.PSU.find(p => p.Bus === spiralConf.PowerBus);
+        const config = StatesController?.Machine?.Config ?? machineConfig;
+        if (!config || !config.Sections) {
+            throw new Error('ClassVendingSectionFacade: StatesController.Machine.Config или machineConfig обязателен для инициализации');
+        }
+
+        const secIdx = config.Sections.findIndex(s => s.ID == sectionId);
+        if (secIdx < 0) {
+            throw new Error(`ClassVendingSectionFacade: Секция с ID "${sectionId}" не найдена в конфигурации`);
+        }
+        const spiralConf = config.Sections[secIdx];
+
+        this._Id = spiralConf.ID;
+        this.#_Logger = ProxyLogger;
+
+        // Поиск состояния секции
+        const sectionState = StatesController.Machine.States.Sections.find(s => s.ID == sectionId);
+        if (!sectionState) {
+            throw new Error(`ClassVendingSectionFacade: Состояние секции с ID "${sectionId}" не найдено в StatesController.Machine.States.Sections`);
+        }
+
+        // Определение шины питания секции в StatesController.Machine.States.Bus
+        const busIdx = config.Power?.Buses?.findIndex(b => b.ID == spiralConf.PowerBus);
+        let getBusState = busIdx >= 0 
+            ? () => StatesController?.Machine?.States?.Bus?.[busIdx] 
+            : null;
+
+        this.#_StateAdapter = new SpiralStateAdapter(sectionState, { getBusState });
+
+        const ch = spiralConf.Channels;
+
+        // Привязка мониторинга моторесурса через примитивный адаптер каналов
+        this.#_MonitoringAdapter = new SpiralMonitoringAdapter({
+            ProxyCh,
+            channels: {
+                monBox: ch?.DeliveryBox?.Monitoring,
+                monLift: ch?.Lift?.Monitoring,
+                monSpirals: ch?.Storage?.Monitoring,
+            }
+        });
+
+        // Проверка наличия обязательных каналов
+        if (!ch?.Door?.Sensor) throw new Error('ClassVendingSectionFacade: отсутствует обязательный канал Channels.Door.Sensor');
+        if (!ch?.DeliveryBox?.Lock || !ch?.DeliveryBox?.Optic) {
+            throw new Error('ClassVendingSectionFacade: отсутствуют обязательные каналы Channels.DeliveryBox (Lock, Optic)');
+        }
+        if (!ch?.Storage?.MatrixCtrl || !ch?.Storage?.Tamper) {
+            throw new Error('ClassVendingSectionFacade: отсутствуют обязательные каналы Channels.Storage (MatrixCtrl, Tamper)');
+        }
+        if (!ch?.Lift?.MotorCtrl || !ch?.Lift?.LevelSensor || !ch?.Lift?.BottomTamper || !ch?.Lift?.TopTamper) {
+            throw new Error('ClassVendingSectionFacade: отсутствуют обязательные каналы Channels.Lift (MotorCtrl, LevelSensor, BottomTamper, TopTamper)');
+        }
+        const powerCh = ch?.Power;
+        if (!powerCh?.Current || !powerCh?.Voltage || !powerCh?.PsuWork) {
+            throw new Error('ClassVendingSectionFacade: отсутствуют обязательные каналы Channels.Power (Current, Voltage, PsuWork)');
+        }
 
         const channels = {
-            door: spiralConf.Channels.Door.Sensor,
-            monBox: spiralConf.Channels.DeliveryBox.Monitoring,
+            door: ch.Door.Sensor,
             boxChannels: {
-                lock: spiralConf.Channels.DeliveryBox.Lock,
-                optic: spiralConf.Channels.DeliveryBox.Optic
+                lock: ch.DeliveryBox.Lock,
+                optic: ch.DeliveryBox.Optic
             },
             storageChannels: {
-                matrixCtrlChannel: spiralConf.Channels.Storage.MatrixCtrl,
-                spiralTamperChannels: spiralConf.Channels.Storage.Tamper,
-                current: psuConf.Channels.CurrentOut,
-                voltage: psuConf.Channels.VoltageOut,
-                short: psuConf.Channels?.Short,
-                psuWork: psuConf.Channels?.Work,
-                monSpirals: spiralConf.Channels.Storage.Monitoring
+                matrixCtrlChannel: ch.Storage.MatrixCtrl,
+                spiralTamperChannels: ch.Storage.Tamper,
+                current: powerCh.Current,
+                voltage: powerCh.Voltage,
+                short: powerCh.Short,
+                psuWork: powerCh.PsuWork
             },
             liftChannels: {
-                liftMotorCtrl: spiralConf.Channels.Lift.MotorCtrl,
-                liftLevelSensor: spiralConf.Channels.Lift.LevelSensor,
-                liftBottomTamper: spiralConf.Channels.Lift.BottomTamper,
-                liftTopTamper: spiralConf.Channels.Lift.TopTamper,
-                current: psuConf.Channels.CurrentOut,
-                voltage: psuConf.Channels.VoltageOut,
-                short: psuConf.Channels?.Short,
-                psuWork: psuConf.Channels?.Work,
-                monLift: spiralConf.Channels.Lift.Monitoring
+                liftMotorCtrl: ch.Lift.MotorCtrl,
+                liftLevelSensor: ch.Lift.LevelSensor,
+                liftBottomTamper: ch.Lift.BottomTamper,
+                liftTopTamper: ch.Lift.TopTamper,
+                current: powerCh.Current,
+                voltage: powerCh.Voltage,
+                short: powerCh.Short,
+                psuWork: powerCh.PsuWork
             }
         };
 
-        const defaultAdvOpts = {
+        const opts = {
             storageOpts: {
                 busNumber: spiralConf.PowerBus,
                 size: { rows: spiralConf.Rows, cols: spiralConf.Cols },
-                globalState
+                globalState: StatesController
             },
             liftOpts: {
                 maxLevel: spiralConf.Rows,
@@ -126,12 +192,13 @@ class ClassVendingSectionFacade {
             }
         };
 
-        this._Target = target ?? { id: spiralConf.ID, name: spiralConf.Name };
         this.#_Section = new ClassSpiralSection({
             ProxyCh,
             channels,
-            advOpts: advOpts ?? defaultAdvOpts,
+            advOpts: opts,
             sectionState,
+            stateAdapter: this.#_StateAdapter,
+            monitoringAdapter: this.#_MonitoringAdapter,
             ProxyLogger
         });
 
@@ -139,17 +206,28 @@ class ClassVendingSectionFacade {
     }
 
     /**
-     * Метаданные целевой секции (идентификатор и имя)
-     * @returns {import('../../srvProxySection/js/Messages').TypeTarget}
+     * Адаптер состояния спиральной секции
+     * @returns {SpiralStateAdapter}
      */
-    get Target() { return this._Target; }
+    get StateAdapter() { return this.#_StateAdapter; }
+
+    /**
+     * Адаптер мониторинга моторесурса спиральной секции
+     * @returns {SpiralMonitoringAdapter}
+     */
+    get MonitoringAdapter() { return this.#_MonitoringAdapter; }
+
+    /**
+     * Идентификатор секции
+     * @returns {string} Идентификатор секции
+     */
+    get ID() { return this._Id; }
 
     /**
      * Эмиттер событий фасада
      * @returns {EventEmitter2}
      */
     get Events() {
-        // TODO: return proxy
         return this.#_Events;
     }
 
@@ -235,7 +313,7 @@ class ClassVendingSectionFacade {
                     ID: crypto.randomUUID(),
                     ParentID: ID,			        // идентификатор транзакции, на которую отвечаем
                     Timestamp: new Date().getTime(),
-                    Target: this._Target,
+                    Target: this._Id,
                     Cell: cell,
                     Result:  ok ? 'OK' : 'FAIL'
                 }  

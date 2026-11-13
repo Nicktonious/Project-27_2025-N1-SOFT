@@ -18,6 +18,11 @@ import {
     SECTION_STATUS,
 } from '../../srvStatesController/ts/IBaseSectionStates';
 import {
+    MEAS_STATE,
+    BUS_CURRENT_STATE,
+    BusState,
+} from '../../srvStatesController/ts/IGlobalStates';
+import {
     LIFT_STATE,
     LIFT_ACTION,
     DELIVERY_BOX_STATUS,
@@ -68,6 +73,7 @@ interface ICellLocalState {
 
 export class SpiralStateAdapter {
     readonly #_State: SpiralSectionState | null;
+    readonly #_BusGetter: (() => BusState | null) | null = null;
 
     // Локальное плоское хранилище для автономного режима (когда state == null)
     #_LiftStatus: LIFT_STATE = LIFT_STATE.OK;
@@ -85,8 +91,16 @@ export class SpiralStateAdapter {
 
     #_Cells: Map<number, ICellLocalState> = new Map();
 
-    constructor(state?: SpiralSectionState | null) {
+    constructor(
+        state?: SpiralSectionState | null,
+        { getBusState, busState }: { getBusState?: () => BusState | null; busState?: BusState | null } = {}
+    ) {
         this.#_State = state ?? null;
+        if (typeof getBusState === 'function') {
+            this.#_BusGetter = getBusState;
+        } else if (busState) {
+            this.#_BusGetter = () => busState;
+        }
     }
 
     // =========================================================================
@@ -218,6 +232,17 @@ export class SpiralStateAdapter {
     }
 
     // =========================================================================
+    // ШИНА ПИТАНИЯ: БУЛЕВЫ ГЕТТЕРЫ (QUERIES)
+    // =========================================================================
+
+    public IsBusOk(): boolean {
+        if (!this.#_BusGetter) return true;
+        const bus = this.#_BusGetter();
+        if (!bus) return true;
+        return bus.Voltage === MEAS_STATE.OK && bus.Current === BUS_CURRENT_STATE.OK;
+    }
+
+    // =========================================================================
     // СЕКЦИЯ: БУЛЕВЫ ГЕТТЕРЫ (QUERIES)
     // =========================================================================
 
@@ -228,7 +253,7 @@ export class SpiralStateAdapter {
 
     public get IsSectionAvailable(): boolean {
         const avail = this.#_State ? this.#_State.IsAvailable : this.#_SectionAvailable;
-        return avail === AVAILABLE_STATE.YES;
+        return avail === AVAILABLE_STATE.YES && this.IsBusOk();
     }
 
     // =========================================================================
