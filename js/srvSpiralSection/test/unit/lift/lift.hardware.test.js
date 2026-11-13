@@ -3,7 +3,10 @@ const assert = require('node:assert/strict');
 
 const { ClassSpiralSectionLift } = require('../../../js/srvSpiralSectionLift');
 const { LIFT_CONSTANTS, COMMON_CONSTANTS, FAULTS } = require('../../../js/SpiralSectionConstants');
-const { SpiralSectionState } = require('../../../js/srvSpiralSectionStates');
+const {
+    createLiftChannelsFixture,
+    createMockSectionState,
+} = require('../../helpers/spiralSection.helper');
 const { ProxyChannelStub } = require('../../../../../tests/helpers/ProxyChannelStub');
 const { Lift } = require('../../../../VMEmulator');
 
@@ -36,30 +39,13 @@ describe('ClassSpiralSectionLift — управление актуаторами
             return id;
         };
 
-        channels = {
-            liftMotorCtrl: 'lift-motor-ctrl',
-            liftMotorCtrl2: 'lift-motor-ctrl2',
-            liftBottomTamper: 'lift-bottom-tamper',
-            liftTopTamper: 'lift-top-tamper',
-            liftLevelSensor: 'lift-level-sensor',
-            current: 'lift-current',
-            voltage: 'lift-voltage',
-            short: 'lift-short',
-            psuWork: 'lift-psu-work',
-            monLift: 'mon-lift',
-        };
+        channels = createLiftChannelsFixture();
 
         stub = new ProxyChannelStub();
         emu = new Lift({ proxy: stub, channels });
         emu.seedDefaultHardware({ atBottom: true });
 
-        sectionState = new SpiralSectionState({
-            Name: 'spiral-test',
-            Type: 'SPIRAL',
-            Rows: SECTION_ROWS,
-            Cols: SECTION_COLS,
-            IOList: [],
-        });
+        sectionState = createMockSectionState({ rows: SECTION_ROWS, cols: SECTION_COLS });
 
         logs = [];
         lift = new ClassSpiralSectionLift({
@@ -280,6 +266,9 @@ describe('ClassSpiralSectionLift — управление актуаторами
         });
 
         it('поднимает лифт с 0-го на 3-й уровень ("UP"), отсчитывая 3 импульса датчика уровня liftLevelSensor, и останавливает привод', async () => {
+            const levelPassedEvents = [];
+            lift.on(ClassSpiralSectionLift.EVENTS.LEVEL_PASSED, (payload) => levelPassedEvents.push(payload));
+
             emu.simulateTravel({
                 stepsCount: 3,
                 stepIntervalMs: 25,
@@ -290,9 +279,10 @@ describe('ClassSpiralSectionLift — управление актуаторами
             assert.equal(lift.Level, 3);
             assert.equal(lift.State, ClassSpiralSectionLift.STATE.IDLE);
             assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl2), ['STOP', 'UP', 'STOP']);
-            // На каждом из 3 уровней отправлялась метрика MON_LIFT_LEVEL_METRIC (0.15) в канал мониторинга monLift
+            // На каждом из 3 уровней эмитировалось событие LEVEL_PASSED (0.15)
+            assert.equal(levelPassedEvents.length, 3);
             assert.deepEqual(
-                stub.getSentValues(channels.monLift),
+                levelPassedEvents.map(e => e.distance),
                 Array(3).fill(MON_LIFT_LEVEL_METRIC)
             );
         });

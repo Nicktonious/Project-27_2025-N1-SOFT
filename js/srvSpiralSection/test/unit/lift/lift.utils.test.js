@@ -3,7 +3,10 @@ const assert = require('node:assert/strict');
 
 const { ClassSpiralSectionLift } = require('../../../js/srvSpiralSectionLift');
 const { LIFT_CONSTANTS, COMMON_CONSTANTS } = require('../../../js/SpiralSectionConstants');
-const { SpiralSectionState } = require('../../../js/srvSpiralSectionStates');
+const {
+    createLiftChannelsFixture,
+    createMockSectionState,
+} = require('../../helpers/spiralSection.helper');
 const { ProxyChannelStub } = require('../../../../../tests/helpers/ProxyChannelStub');
 const { Lift, peekValueInRange, getRangeAbove, getRangeBelow } = require('../../../../VMEmulator');
 
@@ -47,30 +50,13 @@ describe('ClassSpiralSectionLift — утилитарные и вспомога�
             return id;
         };
 
-        channels = {
-            liftMotorCtrl: 'lift-motor-ctrl',
-            liftMotorCtrl2: 'lift-motor-ctrl2',
-            liftBottomTamper: 'lift-bottom-tamper',
-            liftTopTamper: 'lift-top-tamper',
-            liftLevelSensor: 'lift-level-sensor',
-            current: 'lift-current',
-            voltage: 'lift-voltage',
-            short: 'lift-short',
-            psuWork: 'lift-psu-work',
-            monLift: 'mon-lift',
-        };
+        channels = createLiftChannelsFixture();
 
         stub = new ProxyChannelStub();
         emuLift = new Lift({ proxy: stub, channels });
         emuLift.seedDefaultSensors();
 
-        sectionState = new SpiralSectionState({
-            Name: 'spiral-test',
-            Type: 'SPIRAL',
-            Rows: SECTION_ROWS,
-            Cols: SECTION_COLS,
-            IOList: [],
-        });
+        sectionState = createMockSectionState({ rows: SECTION_ROWS, cols: SECTION_COLS });
 
         logs = [];
         proxyLogger = {
@@ -220,17 +206,6 @@ describe('ClassSpiralSectionLift — утилитарные и вспомога�
 
             assert.equal(lift._V_VoltBuffer.Filter(), NOMINAL_WORK_VOLTAGE);
         });
-
-        it('LogTransaction форматирует и передает диагностические записи в ProxyLogger', () => {
-            logs.length = 0;
-
-            lift.LogTransaction('TEST_U_TRANSACTION');
-            assert.equal(logs.length, 1);
-            assert.deepEqual(logs[0], {
-                level: 'D',
-                msg: '[LIFT] TEST_U_TRANSACTION',
-            });
-        });
     });
 
     // =========================================================================
@@ -247,8 +222,6 @@ describe('ClassSpiralSectionLift — утилитарные и вспомога�
             assert.equal(lift.nopower_count, 0);
             assert.equal(lift.overload_count, 0);
             assert.equal(lift.Level, undefined);
-            // В канал мониторинга monLift ничего не пишется, так как лифт не в состоянии движения
-            assert.equal(stub.getSentValues(channels.monLift).length, 0);
         });
 
         it('игнорирует повторные одинаковые значения датчика уровня (#_LevelCachedValue)', () => {

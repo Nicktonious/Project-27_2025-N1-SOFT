@@ -3,7 +3,11 @@ const assert = require('node:assert/strict');
 
 const { ClassSpiralSectionStorage } = require('../../../js/srvSpiralSectionStorage');
 const { FAULTS } = require('../../../js/SpiralSectionConstants');
-const { SpiralSectionState, SPIRAL_CELL_STATE } = require('../../../js/srvSpiralSectionStates');
+const { SPIRAL_CELL_STATE } = require('../../../js/srvSpiralSectionStates');
+const {
+    createStorageChannelsFixture,
+    createMockSectionState,
+} = require('../../helpers/spiralSection.helper');
 const { ProxyChannelStub } = require('../../../../../tests/helpers/ProxyChannelStub');
 const { SpiralSection } = require('../../../../VMEmulator');
 
@@ -33,27 +37,13 @@ describe('ClassSpiralSectionStorage — управление состояния�
             return id;
         };
 
-        channels = {
-            matrixCtrlChannel: 'matrix-ctrl',
-            spiralTamperChannels: Array.from({ length: ROWS }, (_, i) => `spiral-tamper-${i}`),
-            current: 'storage-current',
-            voltage: 'storage-voltage',
-            short: 'storage-short',
-            psuWork: 'storage-psu-work',
-            monSpirals: 'mon-spirals',
-        };
+        channels = createStorageChannelsFixture({ rows: ROWS });
 
         stub = new ProxyChannelStub();
         emuStorage = new SpiralSection({ proxy: stub, channels, size: { rows: ROWS, cols: COLS } });
         emuStorage.seedDefaultSensors();
 
-        sectionState = new SpiralSectionState({
-            Name: 'spiral-test',
-            Type: 'SPIRAL',
-            Rows: ROWS,
-            Cols: COLS,
-            IOList: [],
-        });
+        sectionState = createMockSectionState({ rows: ROWS, cols: COLS });
 
         logs = [];
         proxyLogger = {

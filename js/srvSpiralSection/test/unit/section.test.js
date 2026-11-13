@@ -1,80 +1,26 @@
+'use strict';
+
 const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 
-const ClassVendingSectionFacade = require('../../js/srvVendingSectionFacade').default;
+const { ClassSpiralSection } = require('../../js/srvSpiralSection');
 const { SpiralSectionState } = require('../../js/srvSpiralSectionStates');
-const {
-    BOX_CONSTANTS,
-    STORAGE_CONSTANSTS,
-    LIFT_CONSTANTS,
-} = require('../../js/SpiralSectionConstants');
-const {
-    AVAILABLE_STATE,
-    SECTION_STATUS,
-} = require('../../../srvStatesController/ts/IBaseSectionStates');
+const { BOX_CONSTANTS, STORAGE_CONSTANSTS } = require('../../js/SpiralSectionConstants');
 const { ProxyChannelStub } = require('../../../../tests/helpers/ProxyChannelStub');
+const {
+    createSpiralMachineConfig,
+    createInitialChannelsState,
+} = require('../helpers/spiralSection.helper');
 
-const ROWS = 4;
-const COLS = 4;
 const INIT_SETTLE_MS = 80;
 
-function createTestMachineConfig() {
-    return {
-        Sections: [
-            {
-                ID: '1',
-                Name: 'Machine-1-spiral',
-                Type: 'SPIRAL',
-                Rows: ROWS,
-                Cols: COLS,
-                PowerBus: 1,
-                Channels: {
-                    Door: { Sensor: 'door-channel' },
-                    DeliveryBox: {
-                        Monitoring: 'mon-box',
-                        Lock: 'box-lock',
-                        Optic: 'box-optic',
-                    },
-                    Storage: {
-                        MatrixCtrl: 'matrix-ctrl',
-                        Tamper: Array.from({ length: ROWS }, (_, i) => `tamper-row-${i}`),
-                        Monitoring: 'mon-storage',
-                    },
-                    Lift: {
-                        MotorCtrl: 'lift-motor-ctrl',
-                        MotorCtrl2: 'lift-motor-ctrl2',
-                        LevelSensor: 'lift-level',
-                        BottomTamper: 'lift-bottom',
-                        TopTamper: 'lift-top',
-                        Monitoring: 'mon-lift',
-                    },
-                },
-            },
-        ],
-        Power: {
-            PSU: [
-                {
-                    Bus: 1,
-                    Channels: {
-                        CurrentOut: 'psu-current',
-                        VoltageOut: 'psu-voltage',
-                        Short: 'psu-short',
-                        Work: 'psu-work',
-                    },
-                },
-            ],
-        },
-    };
-}
-
-describe('ClassVendingSectionFacade & ClassSpiralSection — Базовые тесты (Этап 1)', () => {
+describe('ClassSpiralSection — Комплексное взаимодействие подсистем (Lift, Storage, Box) и алгоритмы безопасности', () => {
     let stub;
+    let config;
     let sectionState;
-    let facade;
     let section;
     let logs;
     let logger;
-    let machineConfig;
     let activeIntervals = [];
 
     const origSetInterval = global.setInterval;
@@ -88,54 +34,76 @@ describe('ClassVendingSectionFacade & ClassSpiralSection — Базовые те
         };
 
         stub = new ProxyChannelStub();
+        config = createSpiralMachineConfig({ id: '1', rows: 4, cols: 4, powerBus: 'BUS-1' });
 
-        // Начальные показания датчиков в покое
-        const initial = {
-            'door-channel': BOX_CONSTANTS.DOOR_CLOSED,
-            'box-optic': BOX_CONSTANTS.BOX_CLOSED,
-            'box-lock': BOX_CONSTANTS.UNLOCK_OFF,
-            'mon-box': 0,
-            'mon-storage': null,
-            'mon-lift': null,
-            'lift-motor-ctrl2': 'STOP',
-            'lift-bottom': LIFT_CONSTANTS.LIFT_BOTTOM_TAMPER_ON,
-            'lift-top': LIFT_CONSTANTS.LIFT_BOTTOM_TAMPER_OFF,
-            'lift-level': LIFT_CONSTANTS.LIFT_LEVEL_OFF,
-            'psu-current': 0.05,
-            'psu-voltage': 24,
-            'psu-short': 0,
-            'psu-work': 1,
-        };
-        for (let r = 0; r < ROWS; r++) {
-            initial[`tamper-row-${r}`] = STORAGE_CONSTANSTS.TAMPER_ON;
-        }
-        stub.seed(initial);
+        stub.seed(createInitialChannelsState(config));
 
         sectionState = new SpiralSectionState({
             Name: 'Machine-1-spiral',
             Type: 'SPIRAL',
-            Rows: ROWS,
-            Cols: COLS,
+            Rows: 4,
+            Cols: 4,
             IOList: [],
         });
+        sectionState.ID = '1';
 
         logs = [];
         logger = {
             Log: (entry) => logs.push(entry),
         };
 
-        machineConfig = createTestMachineConfig();
+        const secConf = config.Sections[0];
+        const ch = secConf.Channels;
+        const powerCh = ch.Power;
 
-        facade = new ClassVendingSectionFacade({
+        const channels = {
+            door: ch.Door.Sensor,
+            boxChannels: {
+                lock: ch.DeliveryBox.Lock,
+                optic: ch.DeliveryBox.Optic,
+            },
+            storageChannels: {
+                matrixCtrlChannel: ch.Storage.MatrixCtrl,
+                spiralTamperChannels: ch.Storage.Tamper,
+                current: powerCh.Current,
+                voltage: powerCh.Voltage,
+                short: powerCh.Short,
+                psuWork: powerCh.PsuWork,
+            },
+            liftChannels: {
+                liftMotorCtrl: ch.Lift.MotorCtrl,
+                liftMotorCtrl2: ch.Lift.MotorCtrl2,
+                liftLevelSensor: ch.Lift.LevelSensor,
+                liftBottomTamper: ch.Lift.BottomTamper,
+                liftTopTamper: ch.Lift.TopTamper,
+                current: powerCh.Current,
+                voltage: powerCh.Voltage,
+                short: powerCh.Short,
+                psuWork: powerCh.PsuWork,
+            },
+        };
+
+        const advOpts = {
+            storageOpts: {
+                busNumber: secConf.PowerBus,
+                size: { rows: secConf.Rows, cols: secConf.Cols },
+                globalState: null,
+            },
+            liftOpts: {
+                busNumber: secConf.PowerBus,
+                maxLevel: secConf.Rows,
+            },
+        };
+
+        section = new ClassSpiralSection({
             ProxyCh: stub,
+            channels,
+            advOpts,
             sectionState,
             ProxyLogger: logger,
-            machineConfig,
         });
 
-        section = facade.Section;
-
-        // Ожидание завершения асинхронного Init() лифта (Stop() с задержкой 50мс)
+        // Ожидание завершения начального Stop() лифта
         await new Promise((r) => setTimeout(r, INIT_SETTLE_MS));
         stub.clearHistory();
         logs.length = 0;
@@ -147,53 +115,35 @@ describe('ClassVendingSectionFacade & ClassSpiralSection — Базовые те
             clearInterval(id);
         }
         activeIntervals = [];
-        facade.Reset();
+        section.Reset();
         stub.reset({ removeListeners: true });
     });
 
     // =========================================================================
-    // 1. Инициализация и мониторинг состояния
+    // 1. Алгоритмы безопасности (Door и DeliveryBox)
     // =========================================================================
-    describe('Инициализация и мониторинг состояния', () => {
-        it('корректно инициализирует фасад и секцию из machineConfig', () => {
-            assert.ok(facade);
-            assert.ok(section);
-            assert.equal(facade.Target.id, '1');
-            assert.equal(facade.Target.name, 'Machine-1-spiral');
-            assert.equal(facade.StateAdapter.IsSectionBlocked, false);
-            assert.equal(facade.StateAdapter.IsSectionAvailable, true);
-            assert.equal(sectionState.Status, SECTION_STATUS.IDLE);
-            assert.equal(sectionState.IsAvailable, AVAILABLE_STATE.YES);
-            assert.equal(section.IsDoorClosed(), true);
-        });
+    describe('Безопасность: реакция на сервисные датчики двери и люка', () => {
+        it('открытие сервисной двери во время операции вызывает Abort() у Lift и Storage', () => {
+            let liftAborted = false;
+            let storageAborted = false;
 
-        it('отслеживает состояние двери: при открытии переводит Door в OPENED/OPEN и вызывает Abort()', () => {
-            assert.equal(facade.StateAdapter.IsDoorClosed, true);
+            section.Lift.Abort = () => { liftAborted = true; };
+            section.Storage.Abort = () => { storageAborted = true; };
 
-            // Размыкание концевика сервисной двери (0 = открыта)
+            // Симулируем активную задачу
+            section._Context.currentTask = { res: () => {}, rej: () => {} };
+
+            // Размыкание концевика сервисной двери (0 = дверь открыта)
             stub.inject('door-channel', 0);
 
-            assert.equal(facade.StateAdapter.IsDoorClosed, false);
             assert.equal(section.IsDoorClosed(), false);
-            assert.equal(sectionState.Door, 'OPEN');
-
-            // Закрытие двери обратно (1 = закрыта)
-            stub.inject('door-channel', BOX_CONSTANTS.DOOR_CLOSED);
-            assert.equal(facade.StateAdapter.IsDoorClosed, true);
-            assert.equal(section.IsDoorClosed(), true);
-            assert.equal(sectionState.Door, 'CLOSED');
+            assert.equal(section.StateAdapter.IsDoorClosed, false);
+            assert.equal(section._Context.aborted, true);
+            assert.equal(liftAborted, true, 'Lift.Abort() должен быть вызван');
+            assert.equal(storageAborted, true, 'Storage.Abort() должен быть вызван');
         });
 
-        it('игнорирует повторные одинаковые события датчика двери', () => {
-            stub.inject('door-channel', 0);
-            const doorClosedAfterFirst = facade.StateAdapter.IsDoorClosed;
-
-            // Повторная отправка того же значения
-            stub.inject('door-channel', 0);
-            assert.equal(facade.StateAdapter.IsDoorClosed, doorClosedAfterFirst);
-        });
-
-        it('WatchBox отслеживает оптический датчик люка, выставляет monBox в 1 и вызывает Abort()', async () => {
+        it('открытие створки люка выдачи (DOOR_OPENED) вызывает Abort() у секции', () => {
             let abortCalled = false;
             const origAbort = section.Abort.bind(section);
             section.Abort = () => {
@@ -201,230 +151,123 @@ describe('ClassVendingSectionFacade & ClassSpiralSection — Базовые те
                 origAbort();
             };
 
-            section._Context.currentTask = { res: () => {} }; // симулируем активную задачу для проверки SafeMode
+            section._Context.currentTask = { res: () => {}, rej: () => {} };
 
-            // Размыкаем оптический датчик люка (0 = открыт)
-            stub.inject('box-optic', 0);
+            // Эмитим открытие отсека выдачи
+            section.Box.emit(section.Box.constructor.EVENTS.OPENED);
 
-            // Ожидаем срабатывания DOOR_DEBOUNCE_MS (300 мс)
-            await new Promise((r) => setTimeout(r, 350));
-
-            assert.equal(stub.getLastSentValue('mon-box'), 1);
             assert.equal(abortCalled, true);
+            assert.equal(section._Context.aborted, true);
+        });
 
-            section.Abort = origAbort;
+        it('отклоняет запуск транзакции при открытой двери секции', async () => {
+            stub.inject('door-channel', 0); // дверь открыта
+
+            const orders = [{ row: 1, column: 1, quantity: 1 }];
+            const results = [];
+            section.on('result', (r) => results.push(r));
+
+            await section.Execute(orders);
+
+            // TODO: переход на типизированные коды ошибок / кастомные исключения вместо строковых логов
+            assert.equal(results.length, 1);
+            assert.equal(results[0].ok, false);
         });
     });
 
     // =========================================================================
-    // 2. Диспетчеризация команд и контроль занятости (PerformTransaction)
+    // 2. Алгоритм комплексной выдачи и обработка ошибок ячеек
     // =========================================================================
-    describe('Диспетчеризация команд и контроль занятости (PerformTransaction)', () => {
-        it('SetLiftLevel вызывает перемещение лифта на заданный уровень и генерирует успешный ответ', async () => {
-            const responses = [];
-            facade.Events.on('response', (msg) => responses.push(msg));
+    describe('Комплексная транзакция выдачи: взаимодействие Lift + Storage + Box', () => {
+        it('пропускает ячейку и не вызывает Dispense, если ее статус аварийный (!IsCheckable)', async () => {
+            // Помечаем ячейку (row: 1, col: 0) как перегруженную/аварийную (OVERLOAD_I)
+            const unitIndex = section.Storage.PosToInd({ row: 1, col: 0 });
+            section.StateAdapter.SetCellOverload(unitIndex);
 
-            // Лифт уже на 0 уровне, спуск в 0 завершается мгновенно
-            const transaction = {
-                Command: 'SetLiftLevel',
-                ID: 'trans-lift-0',
-                Level: 0,
+            let dispenseCalled = false;
+            section.Storage.Dispense = async () => {
+                dispenseCalled = true;
             };
 
-            await facade.PerformTransaction(transaction);
+            // Мокаем перемещение лифта и тестирование
+            section.Lift.ElevateToBottom = async () => {};
+            section.Lift.ElevateToLevel = async () => {};
+            section.Storage.TestSpiral = async () => {};
 
-            assert.equal(responses.length, 1);
-            assert.equal(responses[0].Response.Result, 'OK');
-            assert.equal(responses[0].Response.ParentID, 'trans-lift-0');
-            assert.equal(responses[0].Response.Cell, null);
+            const orders = [{ row: 1, column: 0, quantity: 1 }];
+            const results = [];
+            section.on('result', (r) => results.push(r));
+
+            await section.Execute(orders);
+
+            assert.equal(dispenseCalled, false, 'Dispense не должен вызываться для аварийной ячейки');
+            assert.equal(results.length, 1);
+            assert.equal(results[0].ok, false);
         });
 
-        it('RotateSpiral вызывает ManualRotateSpiral и возвращает успешный ответ с координатами ячейки', async () => {
-            const responses = [];
-            facade.Events.on('response', (msg) => responses.push(msg));
-
-            let rotateArgs = null;
-            section.ManualRotateSpiral = async (args) => {
-                rotateArgs = args;
-                return { success: true };
+        it('не открывает люк выдачи (Box.Deliver), если ни один товар не был собран из Storage', async () => {
+            let deliverCalled = false;
+            section.Box.Deliver = async () => {
+                deliverCalled = true;
             };
 
-            const transaction = {
-                Command: 'RotateSpiral',
-                ID: 'tx-rotate-1',
-                Cells: [{ row: 1, column: 2, quantity: 1 }],
+            section.Lift.ElevateToBottom = async () => {};
+            section.Lift.ElevateToLevel = async () => {};
+            section.Storage.TestSpiral = async () => {};
+
+            // Симулируем неудачную выдачу (ошибка мотора при Dispense)
+            section.Storage.Dispense = async () => {
+                throw new Error('Механический заклинивание спирали');
             };
 
-            await facade.PerformTransaction(transaction);
+            const orders = [{ row: 0, column: 1, quantity: 1 }];
+            const results = [];
+            section.on('result', (r) => results.push(r));
 
-            assert.equal(responses.length, 1);
-            assert.equal(responses[0].Response.Result, 'OK');
-            assert.equal(responses[0].Response.ParentID, 'tx-rotate-1');
-            assert.deepEqual(responses[0].Response.Cell, { row: 1, column: 2 });
-            assert.deepEqual(rotateArgs, { row: 1, column: 2, quantity: 1 });
+            await section.Execute(orders);
+
+            assert.equal(deliverCalled, false, 'Box.Deliver не должен вызываться при отсутствии собранных товаров');
+            assert.equal(results.length, 1);
+            assert.equal(results[0].ok, false);
         });
 
-        it('OpenDeliveryBox вызывает OpenBox и возвращает успешный ответ', async () => {
-            const responses = [];
-            facade.Events.on('response', (msg) => responses.push(msg));
-
-            let openCalled = false;
-            section.OpenBox = async () => {
-                openCalled = true;
-                return true;
+        it('при успешном сборе товара опускает лифт на 0-й уровень и открывает люк выдачи (Deliver)', async () => {
+            let deliverCalled = false;
+            section.Box.Deliver = async () => {
+                deliverCalled = true;
             };
 
-            const transaction = {
-                Command: 'OpenDeliveryBox',
-                ID: 'tx-box-open',
-            };
-
-            await facade.PerformTransaction(transaction);
-
-            assert.equal(responses.length, 1);
-            assert.equal(responses[0].Response.Result, 'OK');
-            assert.equal(responses[0].Response.ParentID, 'tx-box-open');
-            assert.equal(openCalled, true);
-        });
-
-        it('Invoke делегирует служебные вызовы в Section.Invoke', () => {
-            let invokeArgs = null;
-            section.Invoke = (...args) => {
-                invokeArgs = args;
-                return 'invoked-ok';
-            };
-
-            const result = facade.Invoke('Rotate', { row: 0, column: 0, duration: 500 });
-            assert.equal(result, 'invoked-ok');
-            assert.deepEqual(invokeArgs, ['Rotate', { row: 0, column: 0, duration: 500 }]);
-        });
-
-        it('блокирует параллельное выполнение транзакций с ошибкой', async () => {
-            let unlockResolve;
-            const slowPromise = new Promise((res) => {
-                unlockResolve = res;
+            let currentLevel = 2;
+            Object.defineProperty(section.Lift, 'Level', {
+                get: () => currentLevel,
+                configurable: true,
             });
 
-            // Искусственно подвешиваем выполнение ElevateLift
-            const origElevateLift = section.ElevateLift.bind(section);
-            section.ElevateLift = async () => {
-                await slowPromise;
+            let liftElevatedToZero = false;
+            section.Lift.ElevateToBottom = async () => {
+                liftElevatedToZero = true;
+                currentLevel = 0;
+            };
+            section.Lift.ElevateToLevel = async (lvl) => {
+                currentLevel = lvl;
+            };
+            section.Storage.TestSpiral = async () => {};
+
+            // Симулируем успешную выдачу товара через эмит события 'dispense'
+            section.Storage.Dispense = async (order) => {
+                section.Storage.emit('dispense', { row: order.row, column: order.column, quantity: 1 });
             };
 
-            const firstTransaction = {
-                Command: 'SetLiftLevel',
-                ID: 'trans-1',
-                Level: 0,
-            };
+            const orders = [{ row: 1, column: 1, quantity: 1 }];
+            const results = [];
+            section.on('result', (r) => results.push(r));
 
-            const secondTransaction = {
-                Command: 'SetLiftLevel',
-                ID: 'trans-2',
-                Level: 0,
-            };
+            await section.Execute(orders);
 
-            // Запускаем первую операцию без await
-            const firstPromise = facade.PerformTransaction(firstTransaction);
-
-            // Попытка запустить вторую операцию одновременно
-            await facade.PerformTransaction(secondTransaction);
-
-            // Проверяем, что в логгере зафиксирована ошибка занятости
-            const errLog = logs.find((l) => l.msg?.includes('Выполняется предыдущая операция'));
-            assert.ok(errLog, 'Должна быть зафиксирована ошибка "Выполняется предыдущая операция"');
-
-            // Завершаем первую операцию
-            unlockResolve();
-            await firstPromise;
-
-            section.ElevateLift = origElevateLift;
-        });
-
-        it('устанавливает TransactionID в логгере при старте транзакции и очищает order при завершении', async () => {
-            let capturedTxIdDuringWork = null;
-
-            const origElevate = section.ElevateLift.bind(section);
-            section.ElevateLift = async () => {
-                capturedTxIdDuringWork = logger.TransactionID;
-            };
-
-            const transaction = {
-                Command: 'SetLiftLevel',
-                ID: 'trans-uuid-999',
-                Level: 0,
-            };
-
-            await facade.PerformTransaction(transaction);
-
-            assert.equal(capturedTxIdDuringWork, 'trans-uuid-999');
-            assert.equal(facade._Context.order, null);
-
-            section.ElevateLift = origElevate;
-        });
-    });
-
-    // =========================================================================
-    // 3. Формирование и отправка ответов (SendResponse / событие response)
-    // =========================================================================
-    describe('Формирование и отправка ответов (SendResponse / событие response)', () => {
-        it('формирует корректную структуру ответа (ID, ParentID, Timestamp, Target, Cell, Result)', async () => {
-            const responses = [];
-            facade.Events.on('response', (msg) => responses.push(msg));
-
-            const transaction = {
-                Command: 'SetLiftLevel',
-                ID: 'tx-structure-check',
-                Level: 0,
-            };
-
-            await facade.PerformTransaction(transaction);
-
-            assert.equal(responses.length, 1);
-            const resp = responses[0].Response;
-
-            assert.ok(typeof resp.ID === 'string' && resp.ID.length > 0, 'Должен быть сгенерирован UUID ответа');
-            assert.equal(resp.ParentID, 'tx-structure-check');
-            assert.ok(typeof resp.Timestamp === 'number' && resp.Timestamp > 0);
-            assert.deepEqual(resp.Target, { id: '1', name: 'Machine-1-spiral' });
-            assert.equal(resp.Result, 'OK');
-        });
-
-        it('формирует ответ с Result: FAIL при возникновении исключения в обработчике команды', async () => {
-            const responses = [];
-            facade.Events.on('response', (msg) => responses.push(msg));
-
-            const origElevate = section.ElevateLift.bind(section);
-            section.ElevateLift = async () => {
-                throw new Error('Аппаратный сбой привода лифта');
-            };
-
-            const transaction = {
-                Command: 'SetLiftLevel',
-                ID: 'tx-fail-check',
-                Level: 2,
-            };
-
-            await facade.PerformTransaction(transaction);
-
-            assert.equal(responses.length, 1);
-            const resp = responses[0].Response;
-            assert.equal(resp.Result, 'FAIL');
-            assert.equal(resp.ParentID, 'tx-fail-check');
-
-            section.ElevateLift = origElevate;
-        });
-
-        it('Reset() сбрасывает контекст заказа и переводит секцию в состояние IDLE / AVAILABLE', () => {
-            facade._Context.order = { ID: 'aborted-order', Cells: [] };
-            facade.StateAdapter.SetSectionBlocked();
-
-            facade.Reset();
-
-            assert.equal(facade._Context.order, null);
-            assert.equal(facade.StateAdapter.IsSectionBlocked, false);
-            assert.equal(facade.StateAdapter.IsSectionAvailable, true);
-            assert.equal(sectionState.Status, SECTION_STATUS.IDLE);
-            assert.equal(sectionState.IsAvailable, AVAILABLE_STATE.YES);
+            assert.equal(liftElevatedToZero, true, 'Лифт должен опуститься на уровень 0 перед выдачей');
+            assert.equal(deliverCalled, true, 'Люк выдачи Box.Deliver() должен быть открыт');
+            assert.equal(results.length, 1);
+            assert.equal(results[0].ok, true);
         });
     });
 });

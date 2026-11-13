@@ -3,8 +3,12 @@ const assert = require('node:assert/strict');
 
 const { ClassSpiralSectionStorage } = require('../../../js/srvSpiralSectionStorage');
 const { STORAGE_CONSTANSTS, COMMON_CONSTANTS, FAULTS } = require('../../../js/SpiralSectionConstants');
-const { SpiralSectionState, SPIRAL_CELL_STATE } = require('../../../js/srvSpiralSectionStates');
+const { SPIRAL_CELL_STATE } = require('../../../js/srvSpiralSectionStates');
 const { CELL_ACTION } = require('../../../../srvStatesController/ts/ISpiralSectionStates');
+const {
+    createStorageChannelsFixture,
+    createMockSectionState,
+} = require('../../helpers/spiralSection.helper');
 const { ProxyChannelStub } = require('../../../../../tests/helpers/ProxyChannelStub');
 const { SpiralSection } = require('../../../../VMEmulator');
 
@@ -45,28 +49,14 @@ describe('ClassSpiralSectionStorage — управление актуатора�
             return id;
         };
 
-        channels = {
-            matrixCtrlChannel: 'matrix-ctrl',
-            spiralTamperChannels: Array.from({ length: ROWS }, (_, i) => `spiral-tamper-${i}`),
-            current: 'storage-current',
-            voltage: 'storage-voltage',
-            short: 'storage-short',
-            psuWork: 'storage-psu-work',
-            monSpirals: 'mon-spirals',
-        };
+        channels = createStorageChannelsFixture({ rows: ROWS });
 
         stub = new ProxyChannelStub();
         emu = new SpiralSection({ proxy: stub, channels, size: { rows: ROWS, cols: COLS } });
         emu.seedDefaultHardware();
         emu.attachMatrixBehavior();
 
-        sectionState = new SpiralSectionState({
-            Name: 'spiral-test',
-            Type: 'SPIRAL',
-            Rows: ROWS,
-            Cols: COLS,
-            IOList: [],
-        });
+        sectionState = createMockSectionState({ rows: ROWS, cols: COLS });
 
         logs = [];
         storage = new ClassSpiralSectionStorage({
@@ -306,7 +296,9 @@ describe('ClassSpiralSectionStorage — управление актуатора�
             const targetInd = storage.PosToInd(order); // index = 7
 
             const dispensedEvents = [];
+            let dispenseDoneEvent = null;
             storage.Events.on('dispense', (payload) => dispensedEvents.push(payload));
+            storage.on(ClassSpiralSectionStorage.EVENTS.DISPENSE_DONE, (payload) => dispenseDoneEvent = payload);
 
             emu.simulateRotations({
                 cols: COLS,
@@ -317,9 +309,10 @@ describe('ClassSpiralSectionStorage — управление актуатора�
 
             assert.equal(storage.State, ClassSpiralSectionStorage.STATE.IDLE);
             assert.deepEqual(dispensedEvents, [order]);
-            assert.deepEqual(stub.getLastSentValue(channels.monSpirals), {
-                Cell: targetInd,
-                Rots: 1,
+            assert.deepEqual(dispenseDoneEvent, {
+                cell: targetInd,
+                rots: 1,
+                coords: { row: order.row, col: order.column }
             });
             assert.equal(sectionState.Cells[targetInd].Action, CELL_ACTION.ACTION);
         });
@@ -329,7 +322,9 @@ describe('ClassSpiralSectionStorage — управление актуатора�
             const targetInd = storage.PosToInd(order); // index = 2
 
             const dispensedEvents = [];
+            let dispenseDoneEvent = null;
             storage.Events.on('dispense', (payload) => dispensedEvents.push(payload));
+            storage.on(ClassSpiralSectionStorage.EVENTS.DISPENSE_DONE, (payload) => dispenseDoneEvent = payload);
 
             emu.simulateRotations({
                 cols: COLS,
@@ -340,9 +335,10 @@ describe('ClassSpiralSectionStorage — управление актуатора�
             await storage.Dispense(order);
 
             assert.equal(dispensedEvents.length, 3);
-            assert.deepEqual(stub.getLastSentValue(channels.monSpirals), {
-                Cell: targetInd,
-                Rots: 3,
+            assert.deepEqual(dispenseDoneEvent, {
+                cell: targetInd,
+                rots: 3,
+                coords: { row: order.row, col: order.column }
             });
 
             const unit = [...storage.UnitsByScope(targetInd, 'single')][0];
@@ -355,6 +351,9 @@ describe('ClassSpiralSectionStorage — управление актуатора�
             // Даже если изначально тампер был в TAMPER_OFF, в manual-режиме MotorOnPhased не бросает TAMPER_BAD_POS
             emu.setRowTamper(order.row, false);
 
+            let dispenseDoneEvent = null;
+            storage.on(ClassSpiralSectionStorage.EVENTS.DISPENSE_DONE, (payload) => dispenseDoneEvent = payload);
+
             emu.simulateRotations({
                 cols: COLS,
                 rotationsCount: 1,
@@ -364,9 +363,10 @@ describe('ClassSpiralSectionStorage — управление актуатора�
             await storage.Dispense(order, true);
 
             assert.equal(storage.State, ClassSpiralSectionStorage.STATE.IDLE);
-            assert.deepEqual(stub.getLastSentValue(channels.monSpirals), {
-                Cell: storage.PosToInd(order),
-                Rots: 1,
+            assert.deepEqual(dispenseDoneEvent, {
+                cell: storage.PosToInd(order),
+                rots: 1,
+                coords: { row: order.row, col: order.column }
             });
         });
 

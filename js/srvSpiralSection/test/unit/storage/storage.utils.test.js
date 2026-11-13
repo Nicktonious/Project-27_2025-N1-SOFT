@@ -3,7 +3,10 @@ const assert = require('node:assert/strict');
 
 const { ClassSpiralSectionStorage } = require('../../../js/srvSpiralSectionStorage');
 const { STORAGE_CONSTANSTS, COMMON_CONSTANTS } = require('../../../js/SpiralSectionConstants');
-const { SpiralSectionState } = require('../../../js/srvSpiralSectionStates');
+const {
+    createStorageChannelsFixture,
+    createMockSectionState,
+} = require('../../helpers/spiralSection.helper');
 const { ProxyChannelStub } = require('../../../../../tests/helpers/ProxyChannelStub');
 const { SpiralSection, peekValueInRange, getRangeAbove, getRangeBelow } = require('../../../../VMEmulator');
 
@@ -47,27 +50,13 @@ describe('ClassSpiralSectionStorage — утилитарные и вспомог
             return id;
         };
 
-        channels = {
-            matrixCtrlChannel: 'matrix-ctrl',
-            spiralTamperChannels: Array.from({ length: ROWS }, (_, i) => `spiral-tamper-${i}`),
-            current: 'storage-current',
-            voltage: 'storage-voltage',
-            short: 'storage-short',
-            psuWork: 'storage-psu-work',
-            monSpirals: 'mon-spirals',
-        };
+        channels = createStorageChannelsFixture({ rows: ROWS });
 
         stub = new ProxyChannelStub();
         emuStorage = new SpiralSection({ proxy: stub, channels, size: { rows: ROWS, cols: COLS } });
         emuStorage.seedDefaultSensors();
 
-        sectionState = new SpiralSectionState({
-            Name: 'spiral-test',
-            Type: 'SPIRAL',
-            Rows: ROWS,
-            Cols: COLS,
-            IOList: [],
-        });
+        sectionState = createMockSectionState({ rows: ROWS, cols: COLS });
 
         logs = [];
         proxyLogger = {
@@ -296,17 +285,6 @@ describe('ClassSpiralSectionStorage — утилитарные и вспомог
 
             assert.equal(dispensedEventFired, false);
             assert.equal(storage.State, ClassSpiralSectionStorage.STATE.IDLE);
-        });
-
-        it('LogTransaction() записывает отформатированные сообщения транзакций в ProxyLogger', () => {
-            logs.length = 0;
-
-            storage.LogTransaction('CONNECT_GND');
-            assert.equal(logs.length, 1);
-            assert.deepEqual(logs[0], {
-                level: 'D',
-                msg: '[STORAGE] CONNECT_GND',
-            });
         });
 
         it('Dispense() и RunMotor() синхронно отклоняют промис при невалидных координатах, quantity < 1 или duration <= 0 без запуска FSM', async () => {

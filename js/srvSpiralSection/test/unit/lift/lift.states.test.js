@@ -3,8 +3,12 @@ const assert = require('node:assert/strict');
 
 const { ClassSpiralSectionLift } = require('../../../js/srvSpiralSectionLift');
 const { LIFT_CONSTANTS, FAULTS } = require('../../../js/SpiralSectionConstants');
-const { SpiralSectionState, LIFT_STATE } = require('../../../js/srvSpiralSectionStates');
+const { LIFT_STATE } = require('../../../js/srvSpiralSectionStates');
 const { ClassFault: Fault } = require('../../../js/srvUtils');
+const {
+    createLiftChannelsFixture,
+    createMockSectionState,
+} = require('../../helpers/spiralSection.helper');
 const { ProxyChannelStub } = require('../../../../../tests/helpers/ProxyChannelStub');
 const { Lift } = require('../../../../VMEmulator');
 
@@ -35,30 +39,13 @@ describe('ClassSpiralSectionLift — управление состояниями
             return id;
         };
 
-        channels = {
-            liftMotorCtrl: 'lift-motor-ctrl',
-            liftMotorCtrl2: 'lift-motor-ctrl2',
-            liftBottomTamper: 'lift-bottom-tamper',
-            liftTopTamper: 'lift-top-tamper',
-            liftLevelSensor: 'lift-level-sensor',
-            current: 'lift-current',
-            voltage: 'lift-voltage',
-            short: 'lift-short',
-            psuWork: 'lift-psu-work',
-            monLift: 'mon-lift',
-        };
+        channels = createLiftChannelsFixture();
 
         stub = new ProxyChannelStub();
         emuLift = new Lift({ proxy: stub, channels });
         emuLift.seedDefaultSensors();
 
-        sectionState = new SpiralSectionState({
-            Name: 'spiral-test',
-            Type: 'SPIRAL',
-            Rows: SECTION_ROWS,
-            Cols: SECTION_COLS,
-            IOList: [],
-        });
+        sectionState = createMockSectionState({ rows: SECTION_ROWS, cols: SECTION_COLS });
 
         logs = [];
         proxyLogger = {
