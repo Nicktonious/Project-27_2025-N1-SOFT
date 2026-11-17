@@ -22,10 +22,24 @@ const STATE = {
 /**
  * @implements {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage}
  */
-class ClassSpiralSectionStorage {
+class ClassSpiralSectionStorage extends EventEmitter2 {
 
     /** @type {typeof import("./srvSpiralSectionStorage").ClassSpiralSectionStorage.STATE} */
     static STATE = STATE;
+
+    static EVENTS = {
+        DISPENSE_COMMAND: 'DISPENSE_COMMAND',
+        DISPENSED_SINGLE: 'DISPENSED_SINGLE',
+        COMPLETED: 'DISPENSED',
+        ROTATE_TIMEOUT: 'ROTATE_TIMEOUT',
+        FAULT: 'ERROR',
+        RECOVERED: 'RECOVERED',
+        TEST_COMMAND: 'TEST_COMMAND',
+        TEST_DONE: 'TEST_DONE',
+        RUN_MOTOR_COMMAND: 'RUN_MOTOR_COMMAND',
+        RUN_MOTOR_DONE: 'RUN_MOTOR_DONE',
+        DISPENSE_DONE: 'DISPENSE_DONE'
+    };
 
     /**@type {import("./srvSpiralSection").TypeProxyCh} */
     #_ProxyCh;
@@ -79,6 +93,8 @@ class ClassSpiralSectionStorage {
      * @param {import("./srvSpiralSection").TypeProxyLogger} param0.ProxyLogger
      */
     constructor({ ProxyCh, channels, advOpts, sectionState, stateAdapter, ProxyLogger }) {
+        super();
+        this.#_Events = this;
         this.#_ProxyCh = ProxyCh;
         /** @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['_ProxyLogger']} */
         this._ProxyLogger = ProxyLogger;
@@ -114,26 +130,14 @@ class ClassSpiralSectionStorage {
      * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['EVENTS']}
      */
     get EVENTS() {
-        return ({
-            DISPENSE_COMMAND: 'DISPENSE_COMMAND',
-            DISPENSED_SINGLE: 'DISPENSED_SINGLE',
-            COMPLETED: 'DISPENSED',
-            ROTATE_TIMEOUT: 'ROTATE_TIMEOUT',
-            FAULT: 'ERROR',
-            RECOVERED: 'RECOVERED',
-            TEST_COMMAND: 'TEST_COMMAND',
-            TEST_DONE: 'TEST_DONE',
-            RUN_MOTOR_COMMAND: 'RUN_MOTOR_COMMAND',
-            RUN_MOTOR_DONE: 'RUN_MOTOR_DONE',
-        });
+        return ClassSpiralSectionStorage.EVENTS;
     }
 
     /**
      * @type {import("./srvSpiralSectionStorage").ClassSpiralSectionStorage['Events']}
      */
     get Events() {
-        // TODO: add proxy
-        return this.#_Events;
+        return this;
     }
 
     /**
@@ -396,7 +400,11 @@ class ClassSpiralSectionStorage {
             this.#_Context.dispenseTimer?.clear();
             this._ProxyLogger.Log({ level: 'D', msg: `[STORAGE] Сброс таймера (361)` });
             this.#_Polling = false;
-            this.#_ProxyCh.SetValue(this.#_Channels.monSpirals, { Cell: this.PosToInd(unitInUse.coords), Rots: itemsDispensed });
+            this.emit(ClassSpiralSectionStorage.EVENTS.DISPENSE_DONE, {
+                cell: this.PosToInd(unitInUse.coords),
+                rots: itemsDispensed,
+                coords: unitInUse.coords
+            });
             this.#_FSM.Dispatch(this.EVENTS.COMPLETED, { index: indexInUse, itemsDispensed, itemsRequested });
         } else {
             this.#_Context.dispenseTimer?.reset();

@@ -25,8 +25,6 @@ export interface TypeSpiralSectionLiftChannels {
     short?: string;
     /** Канал управления питанием ИП (включение/выключение питания) */
     psuWork?: string;
-    /** Канал мониторинга состояния лифта */
-    monLift?: string;
 }
 
 /**
@@ -65,6 +63,8 @@ export interface TypeSpiralSectionLiftEvents {
     RECOVERED: string;
     /** Принудительное прерывание операции */
     ABORT: string;
+    /** Событие прохождения уровня кареткой лифта */
+    LEVEL_PASSED: string;
 }
 
 /**
@@ -139,7 +139,12 @@ export interface TypeSpiralSectionLiftParams {
  * Обеспечивает перемещение каретки между полками, контроль датчиков уровня и концевиков,
  * мониторинг потребляемого тока и напряжения, а также обработку аварийных ситуаций.
  */
-export declare class ClassSpiralSectionLift {
+export declare class ClassSpiralSectionLift extends EventEmitter2 {
+    /**
+     * Константы событий лифта
+     */
+    static EVENTS: TypeSpiralSectionLiftEvents;
+
     /**
      * Константы состояний FSM лифта
      */

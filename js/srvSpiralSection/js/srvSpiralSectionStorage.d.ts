@@ -19,8 +19,6 @@ export interface TypeSpiralSectionStorageChannels {
     short: string;
     /** Канал управления питанием ИП (включение/выключение питания) */
     psuWork: string;
-    /** Канал мониторинга состояния спиралей */
-    monSpirals: string;
 }
 
 /**
@@ -78,6 +76,8 @@ export interface TypeSpiralSectionUnitEvents {
     RUN_MOTOR_COMMAND: string;
     /** Вращение мотора по времени завершено */
     RUN_MOTOR_DONE: string;
+    /** Завершение оборота/выдачи для учета моторесурса */
+    DISPENSE_DONE: string;
 }
 
 /**
@@ -175,7 +175,12 @@ export interface TypeElectrCurrentState {
  * Обеспечивает коммутацию моторов матрицы спиралей, поэтапное включение/выключение,
  * контроль тока потребления и сигналов тамперов, проведение тестирования и выдачи ТМЦ.
  */
-export declare class ClassSpiralSectionStorage {
+export declare class ClassSpiralSectionStorage extends EventEmitter2 {
+    /**
+     * Константы событий спирального хранилища
+     */
+    static EVENTS: TypeSpiralSectionUnitEvents;
+
     /**
      * Константы состояний FSM спирального хранилища
      */

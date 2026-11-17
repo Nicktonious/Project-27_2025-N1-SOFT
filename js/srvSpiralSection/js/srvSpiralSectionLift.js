@@ -1,5 +1,5 @@
 const { EventEmitter2 } = require("eventemitter2");
-const { createTimer, ClassFault: Fault, isWithinTolerance, BufferedCsvWriter } = require("./srvUtils");
+const { createTimer, ClassFault: Fault, isWithinTolerance } = require("./srvUtils");
 const { ClassFSM: FSM } = require("./srvFSM");
 const { LIFT_CONSTANTS, FAULTS, STORAGE_CONSTANSTS, U_TRANSACTIONS, COMMON_CONSTANTS } = require("./SpiralSectionConstants");
 const { SpiralStateAdapter } = require("./srvSpiralStateAdapter");
@@ -19,7 +19,7 @@ const SLEEP_BETWEEN_STEPS = 500;
 /**
  * @implements {import("./srvSpiralSectionLift").ClassSpiralSectionLift}
  */
-class ClassSpiralSectionLift {
+class ClassSpiralSectionLift extends EventEmitter2 {
     /** @type {typeof import("./srvSpiralSectionLift").ClassSpiralSectionLift.STATE} */
     static STATE = {
         IDLE:                 'IDLE',
@@ -27,6 +27,24 @@ class ClassSpiralSectionLift {
         ELEVATING_TO_BOTTOM:  'ELEVATING_TO_BOTTOM',
         ELEVATING_TO_BASE:    'ELEVATING_TO_BASE',
         FAULT:                'FAULT',
+    };
+
+    static EVENTS = {
+        // INTERNAL EVENTS
+        IDLE:                   'IDLE',
+        ELEVATE_TO_BASE_COMMAND:'ELEVATE_TO_BASE_COMMAND',
+        ELEVATE_TO_BOTTOM_COMMAND: 'ELEVATE_TO_BOTTOM_COMMAND',
+        BOTTOM_LEVEL_REACHED:   'BOTTOM_LEVEL_REACHED',
+        BASE_LEVEL_REACHED:     'BASE_LEVEL_REACHED',
+        COLLECT_LEVEL_REACHED:  'COLLECT_LEVEL_REACHED',
+        ELEVATE_COMMAND:        'ELEVATE_COMMAND',
+        ELEVATE_TIMEOUT:        'ELEVATE_TIMEOUT',
+        FAULT:                  'FAULT',
+        RECOVERED:              'RECOVERED',
+        ABORT:                  'ABORT',
+        // EXTERNAL EVENTS
+        LEVEL:                  'LEVEL',
+        LEVEL_PASSED:           'LEVEL_PASSED',
     };
     /**@type {import("./srvSpiralSection").TypeProxyCh} */
     #_ProxyCh;
@@ -81,9 +99,11 @@ class ClassSpiralSectionLift {
      * @param {import("./srvSpiralSectionLift").TypeSpiralSectionLiftChannels} channels
      * @param {import("./srvSpiralSectionLift").TypeSpiralSectionLiftOpts} param0.advOpts 
      * @param {SpiralSectionState} param0.sectionState
+     * @param {import("./srvSpiralMonitoringAdapter").SpiralMonitoringAdapter} [param0.monitoringAdapter]
      * @param {import("./srvSpiralSection.d.ts").TypeProxyLogger} param0.ProxyLogger
      */
     constructor({ ProxyCh, channels, advOpts, globalState, sectionState, stateAdapter, ProxyLogger }) {
+        super();
         this.#_ProxyCh = ProxyCh;
         /** @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['_ProxyLogger']} */
         this._ProxyLogger = ProxyLogger;
@@ -99,23 +119,19 @@ class ClassSpiralSectionLift {
         this.Init();
     }
 
+    get StateAdapter() {
+        return this.#_StateAdapter;
+    }
+
     /**
      * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['EVENTS']}
      */
     get EVENTS() {
-        return ({
-            IDLE:                   'IDLE',
-            ELEVATE_TO_BASE_COMMAND:'ELEVATE_TO_BASE_COMMAND',
-            ELEVATE_TO_BOTTOM_COMMAND: 'ELEVATE_TO_BOTTOM_COMMAND',
-            BOTTOM_LEVEL_REACHED:   'BOTTOM_LEVEL_REACHED',
-            BASE_LEVEL_REACHED:     'BASE_LEVEL_REACHED',
-            COLLECT_LEVEL_REACHED:  'COLLECT_LEVEL_REACHED',
-            ELEVATE_COMMAND:        'ELEVATE_COMMAND',
-            ELEVATE_TIMEOUT:        'ELEVATE_TIMEOUT',
-            FAULT:                  'FAULT',
-            RECOVERED:              'RECOVERED',
-            ABORT:                  'ABORT'
-        });
+        return ClassSpiralSectionLift.EVENTS;
+    }
+
+    get Events() {
+        return this;
     }
 
     /**
@@ -152,14 +168,6 @@ class ClassSpiralSectionLift {
     get Available() {
         return this.#_StateAdapter.IsLiftAvailable;
     } 
-
-    /**
-     * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Events']}
-     */
-    get Events() {
-        // TODO return proxy
-        return this.#_Events;
-    }
 
     /**
      * @type {import("./srvSpiralSectionLift").ClassSpiralSectionLift['Init']}
@@ -295,7 +303,7 @@ class ClassSpiralSectionLift {
 
                 this._ProxyLogger.Log({ level: 'D', msg: `[LIFT] Уровень лифта: ${this.#_Context.currentLevel}` });
                 
-                this.#_ProxyCh.SetValue(this.#_Channels.monLift, 0.15);
+                this.emit(ClassSpiralSectionLift.EVENTS.LEVEL_PASSED, { distance: 0.15, level: this.#_Context.currentLevel });
                 
                 if (this.#_Context.currentLevel == this.#_Context.requiredLevel) {  
                     this.#_Context.timer?.clear();
@@ -646,7 +654,7 @@ class ClassSpiralSectionLift {
 
             if (current_1 < CURRENT_RANGE.WORK_OK[0]) {
                 this.#_Context.movingDir = 0;
-        this.#_StateAdapter?.SetLiftIdle();
+                this.#_StateAdapter?.SetLiftIdle();
                 this.#_StateAdapter?.SetLiftIdle();
                 return;
             }

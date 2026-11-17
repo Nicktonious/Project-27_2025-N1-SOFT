@@ -56,6 +56,8 @@ class ClassSpiralSection extends EventEmitter2 {
     };
     /** @type {SpiralStateAdapter} */
     #_StateAdapter = null;
+    /** @type {import("./srvSpiralMonitoringAdapter").SpiralMonitoringAdapter | null} */
+    #_MonitoringAdapter = null;
 
     #_FSM = new FSM({ stateGraph: this.#_StatesGraph, defaultState: ClassSpiralSection.STATE.IDLE });
     /**
@@ -64,22 +66,21 @@ class ClassSpiralSection extends EventEmitter2 {
      * @param {import("./srvSpiralSection.d.ts").TypeProxyCh} param0.ProxyCh
      * @param {import("./srvSpiralSection.d.ts").TypeSpiralSectionChannels} param0.channels
      * @param {import("./srvSpiralSection.d.ts").TypeSpiralSectionOpts} param0.advOpts
-     * @param {SpiralSectionState} param0.sectionState
+     * @param {import("./srvSpiralStateAdapter").SpiralStateAdapter} [param0.stateAdapter]
+     * @param {import("./srvSpiralMonitoringAdapter").SpiralMonitoringAdapter} [param0.monitoringAdapter]
      * @param {import("./srvSpiralSection.d.ts").TypeProxyLogger} param0.ProxyLogger
      */
-    constructor({ ProxyCh, channels, advOpts, sectionState, stateAdapter, ProxyLogger={ Log: (o)=>console.log(o) } }) {
+    constructor({ ProxyCh, channels, advOpts, stateAdapter, monitoringAdapter, ProxyLogger={ Log: (o)=>console.log(o) } }) {
         super();
         this.#_ProxyCh = ProxyCh;
         this.#_Channels = channels;
         this._ProxyLogger = ProxyLogger;
-        this.#_StateAdapter = stateAdapter ?? (sectionState ? new SpiralStateAdapter(sectionState) : new SpiralStateAdapter(null));
+        this.#_StateAdapter = stateAdapter ?? new SpiralStateAdapter(null);
+        this.#_MonitoringAdapter = monitoringAdapter ?? null;
         this.#_Lift = new ClassSpiralSectionLift({ ProxyCh, ProxyLogger, channels: channels.liftChannels, advOpts: advOpts.liftOpts, stateAdapter: this.#_StateAdapter });
         this.#_Storage = new ClassSpiralSectionStorage({ ProxyCh, ProxyLogger, channels: channels.storageChannels, advOpts: advOpts.storageOpts, stateAdapter: this.#_StateAdapter });
         this.#_Box = new ClassDeliveryBox({ ProxyCh, ProxyLogger, channels: channels.boxChannels, advOpts: {}, stateAdapter: this.#_StateAdapter });
         this.#_Channels.door = channels.door;
-        this.#_Channels.monSpirals = channels.monSpirals;
-        this.#_Channels.monLift = channels.monLift;
-        this.#_Channels.monBox = channels.monBox;
         this.Init();
     }
 
@@ -89,6 +90,14 @@ class ClassSpiralSection extends EventEmitter2 {
     get InWork() { return this._Context.currentTask; }
 
     get StateAdapter() { return this.#_StateAdapter; }
+
+    get MonitoringAdapter() { return this.#_MonitoringAdapter; }
+
+    get Lift() { return this.#_Lift; }
+
+    get Storage() { return this.#_Storage; }
+
+    get Box() { return this.#_Box; }
 
     /**
      * @type {import("./srvSpiralSection").ClassSpiralSection['EVENTS']}
@@ -129,6 +138,8 @@ class ClassSpiralSection extends EventEmitter2 {
         
         this.WatchDoor();
         this.WatchBox();
+        this.WatchLift();
+        this.WatchStorage();
 
         this.#_StateAdapter.SetSectionIdle();
     }
@@ -158,8 +169,26 @@ class ClassSpiralSection extends EventEmitter2 {
      */
     WatchBox() {
         this.#_Box.on(ClassDeliveryBox.EVENTS.OPENED, (() => {
-            this.#_ProxyCh.SetValue(this.#_Channels.monBox, 1);
+            this.#_MonitoringAdapter?.RecordBox(1);
             this.Abort();
+        }).bind(this));
+    }
+
+    /**
+     * @type {import("./srvSpiralSection").ClassSpiralSection['WatchLift']}
+     */
+    WatchLift() {
+        this.#_Lift.on(ClassSpiralSectionLift.EVENTS.LEVEL_PASSED, (({ distance = 0.15 } = {}) => {
+            this.#_MonitoringAdapter?.RecordLevelPassed(distance);
+        }).bind(this));
+    }
+
+    /**
+     * @type {import("./srvSpiralSection").ClassSpiralSection['WatchStorage']}
+     */
+    WatchStorage() {
+        this.#_Storage.on(ClassSpiralSectionStorage.EVENTS.DISPENSE_DONE, (({ cell, rots } = {}) => {
+            this.#_MonitoringAdapter?.RecordCellDispense(cell, rots);
         }).bind(this));
     }
 

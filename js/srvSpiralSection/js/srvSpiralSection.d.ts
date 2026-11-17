@@ -45,12 +45,6 @@ export interface TypeSpiralSectionChannels {
     boxChannels: TypeDeliveryBoxChannels;
     /** Канал датчика сервисной двери секции */
     door: string;
-    /** Канал мониторинга состояния отсека выдачи */
-    monBox: string;
-    /** Канал мониторинга состояния спиралей */
-    monSpirals?: string;
-    /** Канал мониторинга состояния лифта */
-    monLift?: string;
 }
 
 /**
@@ -116,9 +110,21 @@ export declare class ClassSpiralSection extends EventEmitter2 {
         ProxyCh: TypeProxyCh;
         channels: TypeSpiralSectionChannels;
         advOpts: TypeSpiralSectionOpts;
-        sectionState: SpiralSectionState;
+        sectionState?: SpiralSectionState;
+        stateAdapter?: import('./srvSpiralStateAdapter').SpiralStateAdapter;
+        monitoringAdapter?: import('./srvSpiralMonitoringAdapter').SpiralMonitoringAdapter;
         ProxyLogger?: TypeProxyLogger;
     });
+
+    /**
+     * Адаптер состояний секции
+     */
+    get StateAdapter(): import('./srvSpiralStateAdapter').SpiralStateAdapter;
+
+    /**
+     * Адаптер мониторинга моторесурса
+     */
+    get MonitoringAdapter(): import('./srvSpiralMonitoringAdapter').SpiralMonitoringAdapter | null;
 
     /**
      * Возвращает данные текущей выполняемой задачи или null, если секция свободна
@@ -157,6 +163,18 @@ export declare class ClassSpiralSection extends EventEmitter2 {
      * при открытии фиксирует статус в канале мониторинга и прерывает активную операцию.
      */
     WatchBox(): void;
+
+    /**
+     * Запускает отслеживание перемещения лифта;
+     * при прохождении уровня инкрементирует счетчик в канале мониторинга лифта.
+     */
+    WatchLift(): void;
+
+    /**
+     * Запускает отслеживание выдачи спирального хранилища;
+     * при завершении выдачи инкрементирует счетчик в канале мониторинга спиралей.
+     */
+    WatchStorage(): void;
 
     /**
      * Принудительно аварийно прерывает текущую операцию выдачи,

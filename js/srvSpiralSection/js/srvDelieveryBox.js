@@ -74,6 +74,7 @@ class ClassDeliveryBox extends EventEmitter2 {
      * @param {import('./srvSpiralSection').TypeDeliveryBoxChannels} param0.channels 
      * @param {object} param0.advOpts
      * @param {BaseSectionState} param0.sectionState
+     * @param {import("./srvSpiralMonitoringAdapter").SpiralMonitoringAdapter} [param0.monitoringAdapter]
      * @param {import('../../srvLogger/js/srvProxyLogger').ClassProxyLogger} param0.ProxyLogger
      */
     constructor({ ProxyCh, ProxyLogger, channels, advOpts, sectionState, stateAdapter }) {
