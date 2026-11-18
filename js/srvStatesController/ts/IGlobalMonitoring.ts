@@ -23,9 +23,18 @@ export interface GlobalMonitoring {
    */
   Global: {
     /**
-     * Наработка аппарата, часов
+     * Показатели наработки аппарата
      */
-    Uptime: number;
+    Uptime: {
+      /**
+       * Наработка аппарата, часов
+       */
+      Hours: number;
+      /**
+       * Количество включений аппарата
+       */
+      PowerOn: number;
+    };
     /**
      * Показатели сети электропитания
      */
@@ -44,15 +53,15 @@ export interface GlobalMonitoring {
      */
     Energy: {
       /**
-       * Потреблённая активная энергия за текущие сутки, кВт*ч
+       * Потреблённая активная энергия за текущие сутки, Вт·ч
        */
       Day: number;
       /**
-       * Потреблённая активная энергия за неделю, кВт*ч
+       * Потреблённая активная энергия за неделю, Вт·ч
        */
       Week: number;
       /**
-       * Потреблённая активная энергия за месяц, кВт*ч
+       * Потреблённая активная энергия за месяц, Вт·ч
        */
       Month: number;
     };
@@ -71,6 +80,42 @@ export interface GlobalMonitoring {
     };
   };
   /**
+   * Переменные мониторинга хабов
+   */
+  Hub: {
+    /**
+     * Хаб нижнего уровня (НУ)
+     */
+    Low: {
+      /**
+       * Текущая температура CPU хаба НУ, °C
+       */
+      Temp: number;
+    };
+    /**
+     * Хаб среднего уровня (СУ)
+     */
+    Mid: {
+      /**
+       * Текущая температура CPU хаба СУ, °C
+       */
+      Temp: number;
+    };
+    /**
+     * Хаб верхнего уровня (ВУ)
+     */
+    High: {
+      /**
+       * Текущая температура CPU хаба ВУ, °C
+       */
+      Temp: number;
+    };
+  };
+  /**
+   * Переменные измерений и наработки резервированных источников питания (ИБП)
+   */
+  UPS: UpsMonitoring[];
+  /**
    * Переменные измерений шин электропитания
    */
   Bus: BusMonitoring[];
@@ -82,6 +127,71 @@ export interface GlobalMonitoring {
    * Переменные наработки и измерений секций аппарата
    */
   Sections: (SpiralSectionMonitoring | BaseSectionMonitoring)[];
+}
+/**
+ * Переменные измерений и наработки резервированного источника питания (ИБП)
+ */
+export interface UpsMonitoring {
+  /**
+   * Числовое значение входного напряжения, В
+   */
+  VoltageIn: number;
+  /**
+   * Числовое значение выходного напряжения, В
+   */
+  VoltageOut: number;
+  /**
+   * Числовое значение выходного тока, А
+   */
+  CurrentOut: number;
+  /**
+   * Числовое значение температуры ИП, °C
+   */
+  Temp: number;
+  Uptime: UpsUptimeMonitoring;
+}
+/**
+ * Показатели наработки ИБП
+ */
+export interface UpsUptimeMonitoring {
+  /**
+   * Наработка, часов
+   */
+  Hours: number;
+  /**
+   * Моторесурс работы ИП в штатном режиме, часов
+   */
+  HoursMax: number;
+  /**
+   * Наработка в перегрузке по току, часов
+   */
+  OVCcount: number;
+  /**
+   * Наработка в перегреве, часов
+   */
+  OVTcount: number;
+  Battery: UpsBatteryUptimeMonitoring;
+}
+/**
+ * Показатели наработки аккумулятора ИБП
+ */
+export interface UpsBatteryUptimeMonitoring {
+  /**
+   * Общее время эксплуатации аккумулятора, часов
+   */
+  Hours: number;
+  /**
+   * Максимальное время эксплуатации аккумулятора до замены, часов
+   */
+  HoursMax: number;
+  /**
+   * Количество переходов на питание аппарата от аккумулятора
+   */
+  NumTransfers: number;
+  /**
+   * Общее время работы аппарата от аккумулятора, часов
+   */
+  RuntimeTotal: number;
 }
 /**
  * Параметры измерений шины электропитания
@@ -129,13 +239,13 @@ export interface PsuUptimeMonitoring {
   /**
    * Моторесурс работы ИП в штатном режиме, часов
    */
-  Nominal: number;
+  HoursMax: number;
   /**
-   * Наработка в режиме перегрузки по току
+   * Наработка в режиме перегрузки по току, часов
    */
   OVCcount: number;
   /**
-   * Наработка в режиме перегреве
+   * Наработка в режиме перегрева, часов
    */
   OVTcount: number;
 }
@@ -143,28 +253,12 @@ export interface PsuUptimeMonitoring {
  * JSON Schema для базового мониторинга секции (BaseSectionMonitoring)
  */
 export interface BaseSectionMonitoring {
-  /**
-   * Имя секции (например, 'spiral', 'postomat')
-   */
-  Name: string;
-  Uptime: ItemUptimeMonitoring;
-  /**
-   * Массив наработки строк (полок) секции
-   */
-  Rows?: {
-    Uptime: ItemUptimeMonitoring;
-  }[];
-  /**
-   * Массив наработки столбцов секции
-   */
-  Cols?: {
-    Uptime: ItemUptimeMonitoring;
-  }[];
+  Uptime: SectionUptimeMonitoring;
   /**
    * Массив наработки ячеек секции
    */
   Cells: {
-    Uptime: ItemUptimeMonitoring;
+    Uptime: CellUptimeMonitoring;
   }[];
   /**
    * Переменные наработки модулей ввода-вывода (IO)
@@ -177,21 +271,46 @@ export interface BaseSectionMonitoring {
   [k: string]: unknown;
 }
 /**
- * Показатели наработки конструктивного элемента (часы, циклы, типовой моторесурс)
+ * Показатели наработки подсветки секции
  */
-export interface ItemUptimeMonitoring {
+export interface SectionUptimeMonitoring {
   /**
-   * Наработка, часов
+   * Время работы подсветки секции, часов
    */
-  Hours: number;
+  Light: number;
   /**
-   * Наработка, циклов
+   * Максимальное время работы подсветки секции до замены, часов
    */
-  Cycles: number;
+  LightMax: number;
+}
+/**
+ * Показатели наработки ячейки секции
+ */
+export interface CellUptimeMonitoring {
   /**
-   * Типовая наработка (номинальный моторесурс)
+   * Наработка ячейки (замка для постаматной, моторчика для спиральной), операций
    */
-  Nominal: number;
+  Cell: number;
+  /**
+   * Максимальная наработка ячейки до замены, операций
+   */
+  CellMax: number;
+  /**
+   * Количество открытий дверки постаматной ячейки, операций
+   */
+  Door: number;
+  /**
+   * Максимальное количество открытий дверки постаматной ячейки до замены, операций
+   */
+  DoorMax: number;
+  /**
+   * Время работы подсветки ячейки, часов
+   */
+  Light: number;
+  /**
+   * Максимальное время работы подсветки ячейки до замены, часов
+   */
+  LightMax: number;
 }
 /**
  * Показатели наработки модуля ввода-вывода (IO)
@@ -202,15 +321,52 @@ export interface IoUptimeMonitoring {
    */
   Hours: number;
   /**
-   * Типичная наработка (номинальный моторесурс)
+   * Типичная наработка до замены, часов
    */
-  Nominal: number;
+  HoursMax: number;
 }
 /**
  * Переменные наработки лифта секции
  */
 export interface LiftMonitoring {
-  Uptime: ItemUptimeMonitoring;
+  Uptime: LiftUptimeMonitoring;
+}
+/**
+ * Показатели наработки узлов лифта
+ */
+export interface LiftUptimeMonitoring {
+  /**
+   * Наработка механизма лифта, операций
+   */
+  Lift: number;
+  /**
+   * Типичная наработка механизма лифта до замены, операций
+   */
+  LiftMax: number;
+  /**
+   * Наработка двигателя лифта, операций
+   */
+  Motor: number;
+  /**
+   * Типичная наработка двигателя лифта до замены, операций
+   */
+  MotorMax: number;
+  /**
+   * Наработка редуктора лифта, операций
+   */
+  Reducer: number;
+  /**
+   * Типичная наработка редуктора лифта до замены, операций
+   */
+  ReducerMax: number;
+  /**
+   * Наработка роликов и приводного ремня механизма лифта, операций
+   */
+  Drive: number;
+  /**
+   * Типичная наработка роликов и приводного ремня механизма лифта до замены, операций
+   */
+  DriveMax: number;
 }
 /**
  * Переменные наработки лючка выдачи
@@ -223,11 +379,19 @@ export interface DeliveryBoxMonitoring {
  */
 export interface DeliveryBoxUptimeMonitoring {
   /**
-   * Наработка, циклов
+   * Наработка замка лючка выдачи, операций
    */
-  Cycles: number;
+  Lock: number;
   /**
-   * Типовая наработка (номинальный моторесурс)
+   * Типичная наработка замка лючка выдачи до замены, операций
    */
-  Nominal: number;
+  LockMax: number;
+  /**
+   * Наработка двери лючка выдачи, операций
+   */
+  Door: number;
+  /**
+   * Типичная наработка двери лючка выдачи до замены, операций
+   */
+  DoorMax: number;
 }

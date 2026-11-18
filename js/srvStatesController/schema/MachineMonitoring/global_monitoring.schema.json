@@ -130,7 +130,7 @@
           ],
           "additionalProperties": false
         },
-        "Hi": {
+        "High": {
           "type": "object",
           "description": "Хаб верхнего уровня (ВУ)",
           "properties": {
@@ -148,7 +148,7 @@
       "required": [
         "Low",
         "Mid",
-        "Hi"
+        "High"
       ],
       "additionalProperties": false
     },

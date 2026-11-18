@@ -9,13 +9,16 @@
  * JSON Schema для состояния спиральной секции (SpiralSectionState), расширяющая базовую схему секции
  */
 export type SpiralSectionState = BaseSectionState & {
-  Lift: LIFT_STATE;
-  LiftTrap?: DOOR_STATE;
-  DeliveryBox: DELIVERY_BOX_STATE;
+  Lift: LiftState;
+  DeliveryBox: DeliveryBoxState;
   /**
    * Массив состояний ячеек спиральной секции
    */
-  Cells?: TYPE_SPIRAL_CELL[];
+  Cells?: {
+    Status?: SPIRAL_CELL_STATE;
+    [k: string]: unknown;
+  }[];
+  _LegacyDeliveryBox?: DELIVERY_BOX_STATE;
   [k: string]: unknown;
 };
 
@@ -26,11 +29,11 @@ export interface BaseSectionState {
   /**
    * Наименование секции (например, 'spiral', 'postomat')
    */
-  Name: string;
-  IsAvailable: AVAILABLE_STATE;
+  Name?: string;
+  IsAvailable?: AVAILABLE_STATE;
   Door?: DOOR_STATE;
+  Action: SECTION_ACTION;
   Status: SECTION_STATUS;
-  Command?: COMMAND_STATE;
   /**
    * Массив состояний строк (полок) секции
    */
@@ -44,47 +47,51 @@ export interface BaseSectionState {
    */
   Cells: TYPE_CELL[];
   /**
-   * Массив транзакционных состояний ячеек
-   */
-  CellsTransact: TRANSACT_STATE[];
-  /**
-   * Массив флагов доступности моторесурса по ячейкам
-   */
-  Resourse_available: AVAILABLE_STATE[];
-  /**
    * Словарь состояний модулей ввода-вывода (IO)
    */
   IO: {
     [k: string]: TYPE_IO;
   };
+  [k: string]: unknown;
 }
 /**
- * Объект состояния ячейки секции (Status, Action)
+ * Объект состояния ячейки секции (Status, Action, Resource)
  */
 export interface TYPE_CELL {
   Status: CELL_STATE;
   Action: CELL_ACTION;
+  Resource: AVAILABLE_STATE;
 }
 /**
- * Объект состояния и конфигурации модуля ввода-вывода (IO)
+ * Объект состояния модуля ввода-вывода (IO)
  */
 export interface TYPE_IO {
+  Status: IO_STATE;
   /**
-   * Имя модуля ввода-вывода
+   * Массив состояний цифровых выходов DO
    */
-  name: string;
-  state: IO_STATE;
+  DO: IO_PORT_STATE[];
   /**
-   * Массив состояний портов IO модуля
+   * Массив состояний цифровых входов DI
    */
-  ports: IO_PORT_STATE[];
+  DI: IO_PORT_STATE[];
+  Resource: AVAILABLE_STATE;
 }
 /**
- * Объект состояния ячейки спиральной секции (Status, Action)
+ * Состояние лифта спиральной секции (Status, Action, Resource)
  */
-export interface TYPE_SPIRAL_CELL {
-  Status: SPIRAL_CELL_STATE | CELL_STATE;
-  Action: CELL_ACTION;
+export interface LiftState {
+  Status: LIFT_STATE;
+  Action: LIFT_ACTION;
+  Resource: AVAILABLE_STATE;
+}
+/**
+ * Состояние лючка выдачи спиральной секции (Status, Action, Resource)
+ */
+export interface DeliveryBoxState {
+  Status: DELIVERY_BOX_STATUS;
+  Action: DELIVERY_BOX_ACTION;
+  Resource: AVAILABLE_STATE;
 }
 
 /**
@@ -102,22 +109,24 @@ export enum DOOR_STATE {
   OPEN = "OPEN"
 }
 /**
- * Статус выполнения операций секции (IDLE - простой, DISPENSE - выдача ТМЦ, DELIVERY - доставка, BLOCKED - заблокирована, LOADING - загрузка ТМЦ)
+ * Действие секции (IDLE - секция простаивает, DISPENSE - секция занимается выдачей ТМЦ, LOADING - в секцию загружают ТМЦ)
  */
-export enum SECTION_STATUS {
+export enum SECTION_ACTION {
   IDLE = "IDLE",
   DISPENSE = "DISPENSE",
-  DELIVERY = "DELIVERY",
-  BLOCKED = "BLOCKED",
   LOADING = "LOADING"
 }
 /**
- * Состояние выполнения команд (IDLE - ожидание команды, COMMAND - выполнение команды, BLOCKED - заблокировано)
+ * Статус секции (OK - штатно, ERROR - секция работает с ошибками, BLOCKED - секция недоступна, а также IDLE/DISPENSE/DELIVERY/LOADING для обратной совместимости)
  */
-export enum COMMAND_STATE {
+export enum SECTION_STATUS {
+  OK = "OK",
+  ERROR = "ERROR",
+  BLOCKED = "BLOCKED",
   IDLE = "IDLE",
-  COMMAND = "COMMAND",
-  BLOCKED = "BLOCKED"
+  DISPENSE = "DISPENSE",
+  DELIVERY = "DELIVERY",
+  LOADING = "LOADING"
 }
 /**
  * Состояние строки или столбца секции (OK - в норме, BLOCKED - заблокирован)
@@ -127,7 +136,7 @@ export enum LINE_STATE {
   BLOCKED = "BLOCKED"
 }
 /**
- * Флаги состояния ячейки (OK - штатно, OVERLOAD_I - повышенный ток, OVERLOAD_V - повышенное напряжение, BLOCKED - заблокирована, ERROR - ошибка, SERVICE - обслуживание, ERR_TAMPER - ошибка тампера, ERR_TAMPER_BAD_POS - некорректная позиция, ACTUATOR_SHORT_CIRCUIT - КЗ актуатора, ACTUATOR_NO_POWER - нет питания, ERR_MECHANICAL - механическая поломка, OVERLOAD - перегрузка, NOT_CLOSED - ячейка открыта слишком долго)
+ * Флаги состояния ячейки (OK - штатно, OVERLOAD_I - повышенный ток, OVERLOAD_V - повышенное напряжение, BLOCKED - заблокирована, ERROR - ошибка, SERVICE - обслуживание, ERR_TAMPER - ошибка тампера, ERR_TAMPER_BAD_POS - некорректная позиция, ACTUATOR_SHORT_CIRCUIT - КЗ актуатора, ACTUATOR_NO_POWER - нет питания, ERR_MECHANICAL - механическая поломка)
  */
 export enum CELL_STATE {
   OK = "OK",
@@ -150,15 +159,6 @@ export enum CELL_ACTION {
   ACTION = "ACTION",
   OPEN = "OPEN",
   NOT_CLOSED = "NOT_CLOSED"
-}
-/**
- * Транзакционное состояние выполнения операции над ячейкой (OK - готова, EXECUTING - выполняется, COMPLETED - завершена, WARNING - предупреждение)
- */
-export enum TRANSACT_STATE {
-  OK = "OK",
-  EXECUTING = "EXECUTING",
-  COMPLETED = "COMPLETED",
-  WARNING = "WARNING"
 }
 /**
  * Состояние модуля ввода-вывода (OK - в норме, ERR_NO_LINK - потеряно соединение с IO модулем)
@@ -188,12 +188,27 @@ export enum LIFT_STATE {
   ERR_MECHANICAL = "ERR_MECHANICAL"
 }
 /**
- * Флаги состояния лючка выдачи (OPENED - люк открыт, CLOSED - люк закрыт, ERR_MECHANICAL - механическая поломка)
+ * Флаги действия лифта (IDLE - неактивен, MOVING_UP - лифт движется вверх, MOVING_DOWN - лифт движется вниз)
  */
-export enum DELIVERY_BOX_STATE {
-  OPENED = "OPENED",
-  CLOSED = "CLOSED",
+export enum LIFT_ACTION {
+  IDLE = "IDLE",
+  MOVING_UP = "MOVING_UP",
+  MOVING_DOWN = "MOVING_DOWN"
+}
+/**
+ * Флаги состояния лючка выдачи (OK - исправен, BLOCKED - люк заблокирован, ERR_MECHANICAL - механическая поломка люка)
+ */
+export enum DELIVERY_BOX_STATUS {
+  OK = "OK",
+  BLOCKED = "BLOCKED",
   ERR_MECHANICAL = "ERR_MECHANICAL"
+}
+/**
+ * Флаги действия лючка выдачи (OPEN - люк открыт, CLOSED - люк закрыт)
+ */
+export enum DELIVERY_BOX_ACTION {
+  OPEN = "OPEN",
+  CLOSED = "CLOSED"
 }
 /**
  * Флаги состояния ячейки спиральной секции (OK - в норме, OPENING - открывается, OVERLOAD_I - повышенный ток, OVERLOAD_V - повышенное напряжение, BLOCKED - заблокирована, ERROR - ошибка, SERVICE - обслуживание, ERR_TAMPER - ошибка тампера, ERR_TAMPER_BAD_POS - некорректная позиция, ACTUATOR_SHORT_CIRCUIT - КЗ актуатора, ACTUATOR_NO_POWER - нет питания, ERR_MECHANICAL - механическая поломка, OVERLOAD - перегрузка, TAMPER_BAD_POS_ERROR - ошибка начального положения тампера, NOT_CLOSED - ячейка открыта слишком долго)
@@ -214,4 +229,12 @@ export enum SPIRAL_CELL_STATE {
   OVERLOAD = "OVERLOAD",
   TAMPER_BAD_POS_ERROR = "TAMPER_BAD_POS_ERROR",
   NOT_CLOSED = "NOT_CLOSED"
+}
+/**
+ * Флаги состояния лючка выдачи (OPENED - люк открыт, CLOSED - люк закрыт, ERR_MECHANICAL - механическая поломка)
+ */
+export enum DELIVERY_BOX_STATE {
+  OPENED = "OPENED",
+  CLOSED = "CLOSED",
+  ERR_MECHANICAL = "ERR_MECHANICAL"
 }

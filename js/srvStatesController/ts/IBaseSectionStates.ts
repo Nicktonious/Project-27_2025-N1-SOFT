@@ -12,11 +12,11 @@ export interface BaseSectionState {
   /**
    * Наименование секции (например, 'spiral', 'postomat')
    */
-  Name: string;
-  IsAvailable: AVAILABLE_STATE;
+  Name?: string;
+  IsAvailable?: AVAILABLE_STATE;
   Door?: DOOR_STATE;
+  Action: SECTION_ACTION;
   Status: SECTION_STATUS;
-  Command?: COMMAND_STATE;
   /**
    * Массив состояний строк (полок) секции
    */
@@ -30,40 +30,35 @@ export interface BaseSectionState {
    */
   Cells: TYPE_CELL[];
   /**
-   * Массив транзакционных состояний ячеек
-   */
-  CellsTransact: TRANSACT_STATE[];
-  /**
-   * Массив флагов доступности моторесурса по ячейкам
-   */
-  Resourse_available: AVAILABLE_STATE[];
-  /**
    * Словарь состояний модулей ввода-вывода (IO)
    */
   IO: {
     [k: string]: TYPE_IO;
   };
+  [k: string]: unknown;
 }
 /**
- * Объект состояния ячейки секции (Status, Action)
+ * Объект состояния ячейки секции (Status, Action, Resource)
  */
 export interface TYPE_CELL {
   Status: CELL_STATE;
   Action: CELL_ACTION;
+  Resource: AVAILABLE_STATE;
 }
 /**
- * Объект состояния и конфигурации модуля ввода-вывода (IO)
+ * Объект состояния модуля ввода-вывода (IO)
  */
 export interface TYPE_IO {
+  Status: IO_STATE;
   /**
-   * Имя модуля ввода-вывода
+   * Массив состояний цифровых выходов DO
    */
-  name: string;
-  state: IO_STATE;
+  DO: IO_PORT_STATE[];
   /**
-   * Массив состояний портов IO модуля
+   * Массив состояний цифровых входов DI
    */
-  ports: IO_PORT_STATE[];
+  DI: IO_PORT_STATE[];
+  Resource: AVAILABLE_STATE;
 }
 
 /**
@@ -81,22 +76,24 @@ export enum DOOR_STATE {
   OPEN = "OPEN"
 }
 /**
- * Статус выполнения операций секции (IDLE - простой, DISPENSE - выдача ТМЦ, DELIVERY - доставка, BLOCKED - заблокирована, LOADING - загрузка ТМЦ)
+ * Действие секции (IDLE - секция простаивает, DISPENSE - секция занимается выдачей ТМЦ, LOADING - в секцию загружают ТМЦ)
  */
-export enum SECTION_STATUS {
+export enum SECTION_ACTION {
   IDLE = "IDLE",
   DISPENSE = "DISPENSE",
-  DELIVERY = "DELIVERY",
-  BLOCKED = "BLOCKED",
   LOADING = "LOADING"
 }
 /**
- * Состояние выполнения команд (IDLE - ожидание команды, COMMAND - выполнение команды, BLOCKED - заблокировано)
+ * Статус секции (OK - штатно, ERROR - секция работает с ошибками, BLOCKED - секция недоступна, а также IDLE/DISPENSE/DELIVERY/LOADING для обратной совместимости)
  */
-export enum COMMAND_STATE {
+export enum SECTION_STATUS {
+  OK = "OK",
+  ERROR = "ERROR",
+  BLOCKED = "BLOCKED",
   IDLE = "IDLE",
-  COMMAND = "COMMAND",
-  BLOCKED = "BLOCKED"
+  DISPENSE = "DISPENSE",
+  DELIVERY = "DELIVERY",
+  LOADING = "LOADING"
 }
 /**
  * Состояние строки или столбца секции (OK - в норме, BLOCKED - заблокирован)
@@ -106,7 +103,7 @@ export enum LINE_STATE {
   BLOCKED = "BLOCKED"
 }
 /**
- * Флаги состояния ячейки (OK - штатно, OVERLOAD_I - повышенный ток, OVERLOAD_V - повышенное напряжение, BLOCKED - заблокирована, ERROR - ошибка, SERVICE - обслуживание, ERR_TAMPER - ошибка тампера, ERR_TAMPER_BAD_POS - некорректная позиция, ACTUATOR_SHORT_CIRCUIT - КЗ актуатора, ACTUATOR_NO_POWER - нет питания, ERR_MECHANICAL - механическая поломка, OVERLOAD - перегрузка, NOT_CLOSED - ячейка открыта слишком долго)
+ * Флаги состояния ячейки (OK - штатно, OVERLOAD_I - повышенный ток, OVERLOAD_V - повышенное напряжение, BLOCKED - заблокирована, ERROR - ошибка, SERVICE - обслуживание, ERR_TAMPER - ошибка тампера, ERR_TAMPER_BAD_POS - некорректная позиция, ACTUATOR_SHORT_CIRCUIT - КЗ актуатора, ACTUATOR_NO_POWER - нет питания, ERR_MECHANICAL - механическая поломка)
  */
 export enum CELL_STATE {
   OK = "OK",
@@ -129,15 +126,6 @@ export enum CELL_ACTION {
   ACTION = "ACTION",
   OPEN = "OPEN",
   NOT_CLOSED = "NOT_CLOSED"
-}
-/**
- * Транзакционное состояние выполнения операции над ячейкой (OK - готова, EXECUTING - выполняется, COMPLETED - завершена, WARNING - предупреждение)
- */
-export enum TRANSACT_STATE {
-  OK = "OK",
-  EXECUTING = "EXECUTING",
-  COMPLETED = "COMPLETED",
-  WARNING = "WARNING"
 }
 /**
  * Состояние модуля ввода-вывода (OK - в норме, ERR_NO_LINK - потеряно соединение с IO модулем)

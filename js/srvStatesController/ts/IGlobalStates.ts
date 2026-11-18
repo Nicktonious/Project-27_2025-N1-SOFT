@@ -11,6 +11,14 @@
 export type SpiralSectionState = BaseSectionState & {
   Lift: LiftState;
   DeliveryBox: DeliveryBoxState;
+  /**
+   * Массив состояний ячеек спиральной секции
+   */
+  Cells?: {
+    Status?: SPIRAL_CELL_STATE;
+    [k: string]: unknown;
+  }[];
+  _LegacyDeliveryBox?: DELIVERY_BOX_STATE;
   [k: string]: unknown;
 };
 
@@ -18,25 +26,16 @@ export type SpiralSectionState = BaseSectionState & {
  * JSON Schema для глобального дерева состояний вендингового аппарата (States)
  */
 export interface GlobalStates {
-  /**
-   * Уникальное имя вендингового аппарата
-   */
-  Name: string;
-  /**
-   * Дата и время введения аппарата в эксплуатацию
-   */
-  StartDate: string;
-  Command?: COMMAND_STATE;
-  Status: MACHINE_STATUS;
-  Mode: GLOBAL_MACHINE_STATE;
-  Resource?: RESOURCE_STATE;
-  Mains: MainsState;
-  Env: EnvState;
+  Global: GlobalMachineState;
+  Hub: HubState;
   /**
    * Список флагов состояния шин электропитания
    */
-  Bus?: BusState[];
-  Net: NetState;
+  Bus: BusState[];
+  /**
+   * Список флагов состояния источников бесперебойного питания (ИБП)
+   */
+  UPS: UpsState[];
   /**
    * Список флагов состояния источников питания (ИП)
    */
@@ -45,12 +44,26 @@ export interface GlobalStates {
    * Список состояний секций вендингового аппарата
    */
   Sections: (SpiralSectionState | BaseSectionState)[];
+  Net: NetState;
 }
 /**
- * Флаги состояния электропитания сети
+ * Глобальные флаги состояния аппарата в целом
  */
-export interface MainsState {
-  Voltage: MEAS_STATE;
+export interface GlobalMachineState {
+  /**
+   * Уникальное имя вендингового аппарата
+   */
+  Name: string;
+  /**
+   * Дата и время введения аппарата в эксплуатацию
+   */
+  StartDate: string;
+  Action: GLOBAL_ACTION;
+  Status: MACHINE_STATUS;
+  Mode: GLOBAL_MACHINE_STATE;
+  MainsVoltage: MEAS_STATE;
+  Env: EnvState;
+  Resource: RESOURCE_STATE;
 }
 /**
  * Флаги состояния датчиков окружающей среды
@@ -60,6 +73,29 @@ export interface EnvState {
   Hum: MEAS_STATE;
 }
 /**
+ * Флаги состояния микрокомпьютеров (хабов)
+ */
+export interface HubState {
+  /**
+   * Хаб нижнего уровня (НУ)
+   */
+  Low: {
+    Temp: MEAS_STATE;
+  };
+  /**
+   * Хаб среднего уровня (СУ)
+   */
+  Mid: {
+    Temp: MEAS_STATE;
+  };
+  /**
+   * Хаб верхнего уровня (ВУ)
+   */
+  High: {
+    Temp: MEAS_STATE;
+  };
+}
+/**
  * Флаги состояния шины электропитания
  */
 export interface BusState {
@@ -67,151 +103,16 @@ export interface BusState {
   Current: BUS_CURRENT_STATE;
 }
 /**
- * Состояния сетевых служб и компонентов автомата
+ * Флаги состояния источника бесперебойного питания (ИБП)
  */
-export interface NetState {
-  /**
-   * Агрегированные показатели сетевых подсистем
-   */
-  Summary: {
-    Apparatus: NET_SUMMARY_STATE;
-    LAN: NET_SUMMARY_STATE;
-    CoreServices: NET_SUMMARY_STATE;
-    Hubs: NET_SUMMARY_STATE;
-    Cameras: NET_SUMMARY_STATE;
-    Logging: NET_SUMMARY_STATE;
-  };
-  /**
-   * Статусы сетевых устройств
-   */
-  Device: {
-    Router: NET_DEVICE_STATE;
-    SW_PoE: NET_DEVICE_STATE;
-    Hub_Low: NET_DEVICE_STATE;
-    Hub_Mid: NET_DEVICE_STATE;
-    Hub_Hi: NET_DEVICE_STATE;
-    Cam1: NET_DEVICE_STATE;
-    Cam2: NET_DEVICE_STATE;
-  };
-  /**
-   * Статусы физических линков
-   */
-  Link: {
-    Router_Hub_Low: NET_LINK_STATE;
-    Router_Hub_Mid: NET_LINK_STATE;
-    Router_Hub_Hi: NET_LINK_STATE;
-    Router_SW_PoE: NET_LINK_STATE;
-    SW_PoE_Cam1: NET_LINK_STATE;
-    SW_PoE_Cam2: NET_LINK_STATE;
-  };
-  /**
-   * Состояние IP-адресации, ARP и шлюза
-   */
-  IP: {
-    Plan: NET_IP_STATE;
-    ARP: NET_ARP_STATE;
-    Gateway: NET_GATEWAY_STATE;
-  };
-  /**
-   * Состояние сетевых маршрутов
-   */
-  Route: {
-    Local: NET_ROUTE_STATE;
-    Internet: NET_ROUTE_STATE;
-    VPN: NET_ROUTE_STATE;
-  };
-  /**
-   * Показатели качества связи
-   */
-  Quality: {
-    LAN: NET_QUALITY_STATE;
-  };
-  /**
-   * Состояние питания PoE
-   */
-  PoE: {
-    SW_PoE: NET_POE_STATE;
-    Cam1: NET_POE_STATE;
-    Cam2: NET_POE_STATE;
-  };
-  /**
-   * Состояния сервисов видеокамер
-   */
-  Camera: {
-    Cam1_HTTP: NET_CAMERA_SERVICE_STATE;
-    Cam2_HTTP: NET_CAMERA_SERVICE_STATE;
-    Cam1_RTSP: NET_CAMERA_SERVICE_STATE;
-    Cam2_RTSP: NET_CAMERA_SERVICE_STATE;
-  };
-  /**
-   * Состояния службы времени NTP
-   */
-  NTP: {
-    Server: NET_NTP_STATE;
-    Hub_Low: NET_NTP_STATE;
-    Hub_Mid: NET_NTP_STATE;
-    Hub_Hi: NET_NTP_STATE;
-    Cameras: NET_NTP_STATE;
-  };
-  /**
-   * Состояние службы разрешение имён DNS
-   */
-  DNS: {
-    Server: NET_DNS_STATE;
-    LocalRecords: NET_DNS_STATE;
-    HubsResolver: NET_DNS_STATE;
-  };
-  /**
-   * Состояние службы сообщений MQTT
-   */
-  MQTT: {
-    Server: NET_MQTT_STATE;
-    Clients: NET_MQTT_STATE;
-    Retained: NET_MQTT_STATE;
-  };
-  /**
-   * Состояние оперативной БД Redis
-   */
-  Redis: {
-    Server: NET_DB_SERVICE_STATE;
-  };
-  /**
-   * Состояние долгосрочной БД MongoDB
-   */
-  MongoDB: {
-    Server: NET_DB_SERVICE_STATE;
-  };
-  /**
-   * Состояние службы Node-RED на хабах
-   */
-  NodeRED: {
-    Hub_Low: NET_NODERED_STATE;
-    Hub_Mid: NET_NODERED_STATE;
-    Hub_Hi: NET_NODERED_STATE;
-  };
-  /**
-   * Состояние центрального сервиса логирования Graylog
-   */
-  Graylog: {
-    Server: NET_GRAYLOG_STATE;
-    Delivery_Hubs: NET_GRAYLOG_STATE;
-    Delivery_Network: NET_GRAYLOG_STATE;
-  };
-  /**
-   * Показатели сетевой безопасности
-   */
-  Security: {
-    UnknownDevice: NET_SECURITY_STATE;
-    OpenPorts: NET_SECURITY_STATE;
-    Firewall: NET_SECURITY_STATE;
-    Credentials: NET_SECURITY_STATE;
-  };
-  /**
-   * Режимы деградации сетевой инфраструктуры
-   */
-  Mode: {
-    Degraded: NET_DEGRADED_STATE;
-  };
+export interface UpsState {
+  VoltageIn: MEAS_STATE;
+  VoltageOut: MEAS_STATE;
+  CurrentOut: BUS_CURRENT_STATE;
+  Temp: MEAS_STATE;
+  ShortCircuit: AVAILABLE_STATE;
+  Enabled: AVAILABLE_STATE;
+  Resource: AVAILABLE_STATE;
 }
 /**
  * Флаги состояния источника питания (ИП)
@@ -233,8 +134,8 @@ export interface BaseSectionState {
    * Наименование секции (например, 'spiral', 'postomat')
    */
   Name?: string;
-  IsAvailable: AVAILABLE_STATE1;
-  Door: DOOR_STATE;
+  IsAvailable?: AVAILABLE_STATE1;
+  Door?: DOOR_STATE;
   Action: SECTION_ACTION;
   Status: SECTION_STATUS;
   /**
@@ -281,24 +182,120 @@ export interface TYPE_IO {
   Resource: AVAILABLE_STATE1;
 }
 /**
- * Состояние лифта спиральной секции (Status, Resource)
+ * Состояние лифта спиральной секции (Status, Action, Resource)
  */
 export interface LiftState {
   Status: LIFT_STATE;
+  Action: LIFT_ACTION;
   Resource: AVAILABLE_STATE1;
 }
 /**
- * Состояние лючка выдачи спиральной секции (Status, Resource)
+ * Состояние лючка выдачи спиральной секции (Status, Action, Resource)
  */
 export interface DeliveryBoxState {
-  Status: DELIVERY_BOX_STATE;
+  Status: DELIVERY_BOX_STATUS;
+  Action: DELIVERY_BOX_ACTION;
   Resource: AVAILABLE_STATE1;
+}
+/**
+ * Состояния сетевых служб и компонентов аппарата
+ */
+export interface NetState {
+  /**
+   * Агрегированные показатели сетевых подсистем
+   */
+  Summary: {
+    Machine: NET_SUMMARY_STATE;
+    LAN: NET_SUMMARY_STATE;
+    WAN: NET_SUMMARY_STATE;
+    Services: NET_SUMMARY_STATE;
+    Hubs: NET_SUMMARY_STATE;
+    Cameras: NET_SUMMARY_STATE;
+    Logging: NET_SUMMARY_STATE;
+  };
+  /**
+   * Статусы сетевых устройств
+   */
+  Device: {
+    Router: NET_DEVICE_STATE;
+    SW_PoE: NET_DEVICE_STATE;
+    HubLow: NET_DEVICE_STATE;
+    HubMid: NET_DEVICE_STATE;
+    HubHigh: NET_DEVICE_STATE;
+    Cam1: NET_DEVICE_STATE;
+    Cam2: NET_DEVICE_STATE;
+  };
+  /**
+   * Статусы физических линков
+   */
+  Link: {
+    Router_HubLow: NET_LINK_STATE;
+    Router_HubMid: NET_LINK_STATE;
+    Router_HubHigh: NET_LINK_STATE;
+    Router_SW_PoE: NET_LINK_STATE;
+    SW_PoE_Cam1: NET_LINK_STATE;
+    SW_PoE_Cam2: NET_LINK_STATE;
+  };
+  /**
+   * Состояние питания PoE
+   */
+  PoE: {
+    SW_PoE: NET_POE_STATE;
+    Cam1: NET_POE_STATE;
+    Cam2: NET_POE_STATE;
+  };
+  /**
+   * Состояния сервисов видеокамер
+   */
+  Camera: {
+    Cam1_HTTP: NET_CAMERA_SERVICE_STATE;
+    Cam2_HTTP: NET_CAMERA_SERVICE_STATE;
+    Cam1_RTSP: NET_CAMERA_SERVICE_STATE;
+    Cam2_RTSP: NET_CAMERA_SERVICE_STATE;
+  };
+  Service: NetServiceState;
+  Logging: NetLoggingState;
+}
+/**
+ * Состояния системных служб и сервисов
+ */
+export interface NetServiceState {
+  NTP: NetServiceNtpState;
+  DNS: NET_DNS_STATE;
+  MQTT: NET_MQTT_STATE;
+  Redis: NET_DB_SERVICE_STATE;
+  MongoDB: NET_DB_SERVICE_STATE;
+  NodeRED: NetServiceNodeRedState;
+}
+/**
+ * Состояния службы времени NTP
+ */
+export interface NetServiceNtpState {
+  Status: NET_NTP_STATE;
+  HubLow: NET_NTP_STATE;
+  HubMid: NET_NTP_STATE;
+  HubHigh: NET_NTP_STATE;
+  Cameras: NET_NTP_STATE;
+}
+/**
+ * Состояния службы Node-RED на хабах
+ */
+export interface NetServiceNodeRedState {
+  HubLow: NET_NODERED_STATE;
+  HubMid: NET_NODERED_STATE;
+  HubHigh: NET_NODERED_STATE;
+}
+/**
+ * Состояние централизованного логирования Graylog
+ */
+export interface NetLoggingState {
+  Graylog: NET_GRAYLOG_STATE;
 }
 
 /**
- * Состояние выполнения команд (IDLE - ожидание команды, COMMAND - выполнение команды, BLOCKED - заблокировано)
+ * Флаги действия аппарата в целом (IDLE - ожидание команды ВУ, COMMAND - выполнение команды выдачи, BLOCKED - выполнение команд ВУ заблокировано)
  */
-export enum COMMAND_STATE {
+export enum GLOBAL_ACTION {
   IDLE = "IDLE",
   COMMAND = "COMMAND",
   BLOCKED = "BLOCKED"
@@ -312,22 +309,14 @@ export enum MACHINE_STATUS {
   ERROR = "ERROR"
 }
 /**
- * Глобальные режимы работы аппарата (OK - штатный режим, SERVICE - техническое обслуживание, DEPLOY - обновление прошивки, RESTART - режим перезапуска, STOP - режим останова)
+ * Глобальные режимы работы аппарата (RUNNING - штатный режим, SERVICE - техническое обслуживание, DEPLOY - обновление прошивки, RESTART - режим перезапуска, STOP - режим останова)
  */
 export enum GLOBAL_MACHINE_STATE {
-  OK = "OK",
+  RUNNING = "RUNNING",
   SERVICE = "SERVICE",
   DEPLOY = "DEPLOY",
   RESTART = "RESTART",
   STOP = "STOP"
-}
-/**
- * Общее состояние моторесурса аппарата (OK - в допуске, WARNING - требуется обслуживание, ERROR - моторесурс исчерпан)
- */
-export enum RESOURCE_STATE {
-  OK = "OK",
-  WARNING = "WARNING",
-  ERROR = "ERROR"
 }
 /**
  * Статус измерений (OK - значение в норме, ERR_HIGH - значение повышено, ERR_LOW - значение понижено)
@@ -338,11 +327,170 @@ export enum MEAS_STATE {
   ERR_LOW = "ERR_LOW"
 }
 /**
+ * Общее состояние моторесурса аппарата (OK - в допуске, WARNING - требуется обслуживание, ERROR - моторесурс исчерпан)
+ */
+export enum RESOURCE_STATE {
+  OK = "OK",
+  WARNING = "WARNING",
+  ERROR = "ERROR"
+}
+/**
  * Статус тока шины или источника питания (OK - в норме, ERR_HIGH - повышенный ток)
  */
 export enum BUS_CURRENT_STATE {
   OK = "OK",
   ERR_HIGH = "ERR_HIGH"
+}
+/**
+ * Флаг доступности (YES - доступно/в норме, NO - недоступно/исчерпано)
+ */
+export enum AVAILABLE_STATE {
+  YES = "YES",
+  NO = "NO"
+}
+/**
+ * Флаг доступности (YES - доступно/в норме, NO - недоступно/исчерпано)
+ */
+export enum AVAILABLE_STATE1 {
+  YES = "YES",
+  NO = "NO"
+}
+/**
+ * Состояние сервисной двери секции (CLOSED - закрыта, OPEN - открыта)
+ */
+export enum DOOR_STATE {
+  CLOSED = "CLOSED",
+  OPEN = "OPEN"
+}
+/**
+ * Действие секции (IDLE - секция простаивает, DISPENSE - секция занимается выдачей ТМЦ, LOADING - в секцию загружают ТМЦ)
+ */
+export enum SECTION_ACTION {
+  IDLE = "IDLE",
+  DISPENSE = "DISPENSE",
+  LOADING = "LOADING"
+}
+/**
+ * Статус секции (OK - штатно, ERROR - секция работает с ошибками, BLOCKED - секция недоступна, а также IDLE/DISPENSE/DELIVERY/LOADING для обратной совместимости)
+ */
+export enum SECTION_STATUS {
+  OK = "OK",
+  ERROR = "ERROR",
+  BLOCKED = "BLOCKED",
+  IDLE = "IDLE",
+  DISPENSE = "DISPENSE",
+  DELIVERY = "DELIVERY",
+  LOADING = "LOADING"
+}
+/**
+ * Состояние строки или столбца секции (OK - в норме, BLOCKED - заблокирован)
+ */
+export enum LINE_STATE {
+  OK = "OK",
+  BLOCKED = "BLOCKED"
+}
+/**
+ * Флаги состояния ячейки (OK - штатно, OVERLOAD_I - повышенный ток, OVERLOAD_V - повышенное напряжение, BLOCKED - заблокирована, ERROR - ошибка, SERVICE - обслуживание, ERR_TAMPER - ошибка тампера, ERR_TAMPER_BAD_POS - некорректная позиция, ACTUATOR_SHORT_CIRCUIT - КЗ актуатора, ACTUATOR_NO_POWER - нет питания, ERR_MECHANICAL - механическая поломка)
+ */
+export enum CELL_STATE {
+  OK = "OK",
+  OVERLOAD_I = "OVERLOAD_I",
+  OVERLOAD_V = "OVERLOAD_V",
+  BLOCKED = "BLOCKED",
+  ERROR = "ERROR",
+  SERVICE = "SERVICE",
+  ERR_TAMPER = "ERR_TAMPER",
+  ERR_TAMPER_BAD_POS = "ERR_TAMPER_BAD_POS",
+  ACTUATOR_SHORT_CIRCUIT = "ACTUATOR_SHORT_CIRCUIT",
+  ACTUATOR_NO_POWER = "ACTUATOR_NO_POWER",
+  ERR_MECHANICAL = "ERR_MECHANICAL"
+}
+/**
+ * Флаги состояния действия ячейки (IDLE - закрыта/в ждущем режиме, ACTION - отрабатывает команду выдачи, OPEN - открыта, NOT_CLOSED - открыта слишком долго)
+ */
+export enum CELL_ACTION {
+  IDLE = "IDLE",
+  ACTION = "ACTION",
+  OPEN = "OPEN",
+  NOT_CLOSED = "NOT_CLOSED"
+}
+/**
+ * Состояние модуля ввода-вывода (OK - в норме, ERR_NO_LINK - потеряно соединение с IO модулем)
+ */
+export enum IO_STATE {
+  OK = "OK",
+  ERR_NO_LINK = "ERR_NO_LINK"
+}
+/**
+ * Состояние порта модуля ввода-вывода (OK - в норме, ERROR - порт повреждён)
+ */
+export enum IO_PORT_STATE {
+  OK = "OK",
+  ERROR = "ERROR"
+}
+/**
+ * Флаги состояния лифта (OK - в норме, OVERLOAD - перегрузка, BLOCKED - недоступен, SHORT_CIRCUIT - короткое замыкание, NO_POWER - отсутствует питание, ERR_TAMPER - тампер вышел из строя, ERR_LEVEL - неисправен датчик уровня, ERR_MECHANICAL - механическая поломка)
+ */
+export enum LIFT_STATE {
+  OK = "OK",
+  OVERLOAD = "OVERLOAD",
+  BLOCKED = "BLOCKED",
+  SHORT_CIRCUIT = "SHORT_CIRCUIT",
+  NO_POWER = "NO_POWER",
+  ERR_TAMPER = "ERR_TAMPER",
+  ERR_LEVEL = "ERR_LEVEL",
+  ERR_MECHANICAL = "ERR_MECHANICAL"
+}
+/**
+ * Флаги действия лифта (IDLE - неактивен, MOVING_UP - лифт движется вверх, MOVING_DOWN - лифт движется вниз)
+ */
+export enum LIFT_ACTION {
+  IDLE = "IDLE",
+  MOVING_UP = "MOVING_UP",
+  MOVING_DOWN = "MOVING_DOWN"
+}
+/**
+ * Флаги состояния лючка выдачи (OK - исправен, BLOCKED - люк заблокирован, ERR_MECHANICAL - механическая поломка люка)
+ */
+export enum DELIVERY_BOX_STATUS {
+  OK = "OK",
+  BLOCKED = "BLOCKED",
+  ERR_MECHANICAL = "ERR_MECHANICAL"
+}
+/**
+ * Флаги действия лючка выдачи (OPEN - люк открыт, CLOSED - люк закрыт)
+ */
+export enum DELIVERY_BOX_ACTION {
+  OPEN = "OPEN",
+  CLOSED = "CLOSED"
+}
+/**
+ * Флаги состояния ячейки спиральной секции (OK - в норме, OPENING - открывается, OVERLOAD_I - повышенный ток, OVERLOAD_V - повышенное напряжение, BLOCKED - заблокирована, ERROR - ошибка, SERVICE - обслуживание, ERR_TAMPER - ошибка тампера, ERR_TAMPER_BAD_POS - некорректная позиция, ACTUATOR_SHORT_CIRCUIT - КЗ актуатора, ACTUATOR_NO_POWER - нет питания, ERR_MECHANICAL - механическая поломка, OVERLOAD - перегрузка, TAMPER_BAD_POS_ERROR - ошибка начального положения тампера, NOT_CLOSED - ячейка открыта слишком долго)
+ */
+export enum SPIRAL_CELL_STATE {
+  OK = "OK",
+  OPENING = "OPENING",
+  OVERLOAD_I = "OVERLOAD_I",
+  OVERLOAD_V = "OVERLOAD_V",
+  BLOCKED = "BLOCKED",
+  ERROR = "ERROR",
+  SERVICE = "SERVICE",
+  ERR_TAMPER = "ERR_TAMPER",
+  ERR_TAMPER_BAD_POS = "ERR_TAMPER_BAD_POS",
+  ACTUATOR_SHORT_CIRCUIT = "ACTUATOR_SHORT_CIRCUIT",
+  ACTUATOR_NO_POWER = "ACTUATOR_NO_POWER",
+  ERR_MECHANICAL = "ERR_MECHANICAL",
+  OVERLOAD = "OVERLOAD",
+  TAMPER_BAD_POS_ERROR = "TAMPER_BAD_POS_ERROR",
+  NOT_CLOSED = "NOT_CLOSED"
+}
+/**
+ * Флаги состояния лючка выдачи (OPENED - люк открыт, CLOSED - люк закрыт, ERR_MECHANICAL - механическая поломка)
+ */
+export enum DELIVERY_BOX_STATE {
+  OPENED = "OPENED",
+  CLOSED = "CLOSED",
+  ERR_MECHANICAL = "ERR_MECHANICAL"
 }
 /**
  * Агрегированный статус сетевых сервисов и узлов (READY - готов, OK - в норме, DEGRADED - частичная деградация, FAIL - сбой, OFFLINE - отключено, UNKNOWN - нет данных)
@@ -379,58 +527,6 @@ export enum NET_LINK_STATE {
   DOWN = "DOWN",
   ERR_SPEED = "ERR_SPEED",
   ERR_ERRORS = "ERR_ERRORS",
-  UNKNOWN = "UNKNOWN"
-}
-/**
- * Статус IP-адресации (OK - в норме, ERR_NO_IP - нет IP, ERR_WRONG_IP - неверный IP, ERR_DUPLICATE_IP - дубликат IP, UNKNOWN - нет данных)
- */
-export enum NET_IP_STATE {
-  OK = "OK",
-  ERR_NO_IP = "ERR_NO_IP",
-  ERR_WRONG_IP = "ERR_WRONG_IP",
-  ERR_DUPLICATE_IP = "ERR_DUPLICATE_IP",
-  UNKNOWN = "UNKNOWN"
-}
-/**
- * Статус ARP-таблицы (OK - в норме, ERR_MAC_CHANGED - изменился MAC, ERR_MAC_DUPLICATE - дубликат MAC, ERR_MISSING_ARP - нет записи ARP, UNKNOWN - нет данных)
- */
-export enum NET_ARP_STATE {
-  OK = "OK",
-  ERR_MAC_CHANGED = "ERR_MAC_CHANGED",
-  ERR_MAC_DUPLICATE = "ERR_MAC_DUPLICATE",
-  ERR_MISSING_ARP = "ERR_MISSING_ARP",
-  UNKNOWN = "UNKNOWN"
-}
-/**
- * Статус сетевого шлюза (OK - доступен, ERR_NO_GATEWAY - шлюз не задан, ERR_GATEWAY_UNREACHABLE - шлюз недоступен, UNKNOWN - нет данных)
- */
-export enum NET_GATEWAY_STATE {
-  OK = "OK",
-  ERR_NO_GATEWAY = "ERR_NO_GATEWAY",
-  ERR_GATEWAY_UNREACHABLE = "ERR_GATEWAY_UNREACHABLE",
-  UNKNOWN = "UNKNOWN"
-}
-/**
- * Статус маршрута (OK - исправен, OFFLINE - отключен, DEGRADED - сбои, FAIL - недоступен, NOT_REQUIRED - не требуется, UNKNOWN - нет данных)
- */
-export enum NET_ROUTE_STATE {
-  OK = "OK",
-  OFFLINE = "OFFLINE",
-  DEGRADED = "DEGRADED",
-  FAIL = "FAIL",
-  NOT_REQUIRED = "NOT_REQUIRED",
-  UNKNOWN = "UNKNOWN"
-}
-/**
- * Статус качества связи (OK - в норме, WARN_LATENCY - задержка, WARN_JITTER - джиттер, WARN_PACKET_LOSS - потери пакетов, FAIL_STORM - сетевой шторм, FAIL_MAC_FLAP - флэппинг MAC, UNKNOWN - нет данных)
- */
-export enum NET_QUALITY_STATE {
-  OK = "OK",
-  WARN_LATENCY = "WARN_LATENCY",
-  WARN_JITTER = "WARN_JITTER",
-  WARN_PACKET_LOSS = "WARN_PACKET_LOSS",
-  FAIL_STORM = "FAIL_STORM",
-  FAIL_MAC_FLAP = "FAIL_MAC_FLAP",
   UNKNOWN = "UNKNOWN"
 }
 /**
@@ -474,7 +570,7 @@ export enum NET_NTP_STATE {
   UNKNOWN = "UNKNOWN"
 }
 /**
- * Статус службы DNS (OK - в норме, ERR_NO_RESPONSE - нет ответа, ERR_BAD_RESPONSE - некорректный ответ, ERR_MISSING_RECORD - нет записи, ERR_WRONG_RECORD - ошибочная запись, ERR_BAD_RESOLVER - ошибка резолвера, ERR_LOCAL_RESOLVE - ошибка локального разрешения, ERR_EXTERNAL_RESOLVE - ошибка внешнего разрешения, UNKNOWN - нет данных)
+ * Статус службы разрешение имён DNS (OK - в норме, ERR_NO_RESPONSE - нет ответа, ERR_BAD_RESPONSE - некорректный ответ, ERR_MISSING_RECORD - нет записи, ERR_WRONG_RECORD - ошибочная запись, ERR_BAD_RESOLVER - ошибка резолвера, ERR_LOCAL_RESOLVE - ошибка локального разрешения, ERR_EXTERNAL_RESOLVE - ошибка внешнего разрешения, UNKNOWN - нет данных)
  */
 export enum NET_DNS_STATE {
   OK = "OK",
@@ -545,136 +641,4 @@ export enum NET_GRAYLOG_STATE {
   ERR_SW_POE = "ERR_SW_POE",
   DELAYED = "DELAYED",
   UNKNOWN = "UNKNOWN"
-}
-/**
- * Статус сетевой безопасности (OK - нарушений нет, DETECTED - обнаружена угроза, WARN_OPEN_PORT - открытый порт, FAIL_FORBIDDEN_SERVICE - запрещенная служба, ERR_RULE_MISSING - нет правила, ERR_RULE_DISABLED - правило отключено, ERR_POLICY - нарушение политики, FAIL_DEFAULT_PASSWORD - дефолтный пароль, WARN_EXPIRED_CERT - истёк сертификат, WARN_TLS_NAME - ошибка TLS имени, UNKNOWN - нет данных)
- */
-export enum NET_SECURITY_STATE {
-  OK = "OK",
-  DETECTED = "DETECTED",
-  WARN_OPEN_PORT = "WARN_OPEN_PORT",
-  FAIL_FORBIDDEN_SERVICE = "FAIL_FORBIDDEN_SERVICE",
-  ERR_RULE_MISSING = "ERR_RULE_MISSING",
-  ERR_RULE_DISABLED = "ERR_RULE_DISABLED",
-  ERR_POLICY = "ERR_POLICY",
-  FAIL_DEFAULT_PASSWORD = "FAIL_DEFAULT_PASSWORD",
-  WARN_EXPIRED_CERT = "WARN_EXPIRED_CERT",
-  WARN_TLS_NAME = "WARN_TLS_NAME",
-  UNKNOWN = "UNKNOWN"
-}
-/**
- * Режим деградации сети (NONE - нет деградации, CAMERAS_ONLY - только камеры, EXTERNAL_ONLY - только внешняя сеть, LOGGING_ONLY - только логи, SINGLE_HUB - один хаб, CORE_SERVICE - базовые сервисы, UNKNOWN - нет данных)
- */
-export enum NET_DEGRADED_STATE {
-  NONE = "NONE",
-  CAMERAS_ONLY = "CAMERAS_ONLY",
-  EXTERNAL_ONLY = "EXTERNAL_ONLY",
-  LOGGING_ONLY = "LOGGING_ONLY",
-  SINGLE_HUB = "SINGLE_HUB",
-  CORE_SERVICE = "CORE_SERVICE",
-  UNKNOWN = "UNKNOWN"
-}
-/**
- * Флаг доступности (YES - доступно/в норме, NO - недоступно/исчерпано)
- */
-export enum AVAILABLE_STATE {
-  YES = "YES",
-  NO = "NO"
-}
-/**
- * Флаг доступности (YES - доступно/в норме, NO - недоступно/исчерпано)
- */
-export enum AVAILABLE_STATE1 {
-  YES = "YES",
-  NO = "NO"
-}
-/**
- * Состояние сервисной двери секции (CLOSED - закрыта, OPEN - открыта)
- */
-export enum DOOR_STATE {
-  CLOSED = "CLOSED",
-  OPEN = "OPEN"
-}
-/**
- * Действие секции (IDLE - секция простаивает, DISPENSE - секция занимается выдачей ТМЦ, LOADING - в секцию загружают ТМЦ)
- */
-export enum SECTION_ACTION {
-  IDLE = "IDLE",
-  DISPENSE = "DISPENSE",
-  LOADING = "LOADING"
-}
-/**
- * Статус готовности секции к командам ВУ (IDLE - ожидание команды ВУ, COMMAND - выполнение команды, BLOCKED - выполнение команд ВУ заблокировано)
- */
-export enum SECTION_STATUS {
-  IDLE = "IDLE",
-  COMMAND = "COMMAND",
-  BLOCKED = "BLOCKED"
-}
-/**
- * Состояние строки или столбца секции (OK - в норме, BLOCKED - заблокирован)
- */
-export enum LINE_STATE {
-  OK = "OK",
-  BLOCKED = "BLOCKED"
-}
-/**
- * Флаги состояния ячейки (OK - штатно, OVERLOAD_I - повышенный ток, OVERLOAD_V - повышенное напряжение, BLOCKED - заблокирована, ERROR - ошибка, SERVICE - обслуживание, ERR_TAMPER - ошибка тампера, ERR_TAMPER_BAD_POS - некорректная позиция, ACTUATOR_SHORT_CIRCUIT - КЗ актуатора, ACTUATOR_NO_POWER - нет питания, ERR_MECHANICAL - механическая поломка)
- */
-export enum CELL_STATE {
-  OK = "OK",
-  OVERLOAD_I = "OVERLOAD_I",
-  OVERLOAD_V = "OVERLOAD_V",
-  BLOCKED = "BLOCKED",
-  ERROR = "ERROR",
-  SERVICE = "SERVICE",
-  ERR_TAMPER = "ERR_TAMPER",
-  ERR_TAMPER_BAD_POS = "ERR_TAMPER_BAD_POS",
-  ACTUATOR_SHORT_CIRCUIT = "ACTUATOR_SHORT_CIRCUIT",
-  ACTUATOR_NO_POWER = "ACTUATOR_NO_POWER",
-  ERR_MECHANICAL = "ERR_MECHANICAL"
-}
-/**
- * Флаги состояния действия ячейки (IDLE - закрыта/в ждущем режиме, ACTION - отрабатывает команду выдачи, OPEN - открыта, NOT_CLOSED - открыта слишком долго)
- */
-export enum CELL_ACTION {
-  IDLE = "IDLE",
-  ACTION = "ACTION",
-  OPEN = "OPEN",
-  NOT_CLOSED = "NOT_CLOSED"
-}
-/**
- * Состояние модуля ввода-вывода (OK - в норме, ERR_NO_LINK - потеряно соединение с IO модулем)
- */
-export enum IO_STATE {
-  OK = "OK",
-  ERR_NO_LINK = "ERR_NO_LINK"
-}
-/**
- * Состояние порта модуля ввода-вывода (OK - в норме, ERROR - порт повреждён)
- */
-export enum IO_PORT_STATE {
-  OK = "OK",
-  ERROR = "ERROR"
-}
-/**
- * Флаги состояния лифта (OK - в норме, OVERLOAD - перегрузка, BLOCKED - недоступен, SHORT_CIRCUIT - короткое замыкание, NO_POWER - отсутствует питание, ERR_TAMPER - тампер вышел из строя, ERR_LEVEL - неисправен датчик уровня, ERR_MECHANICAL - механическая поломка)
- */
-export enum LIFT_STATE {
-  OK = "OK",
-  OVERLOAD = "OVERLOAD",
-  BLOCKED = "BLOCKED",
-  SHORT_CIRCUIT = "SHORT_CIRCUIT",
-  NO_POWER = "NO_POWER",
-  ERR_TAMPER = "ERR_TAMPER",
-  ERR_LEVEL = "ERR_LEVEL",
-  ERR_MECHANICAL = "ERR_MECHANICAL"
-}
-/**
- * Флаги состояния лючка выдачи (OPENED - люк открыт, CLOSED - люк закрыт, ERR_MECHANICAL - механическая поломка)
- */
-export enum DELIVERY_BOX_STATE {
-  OPENED = "OPENED",
-  CLOSED = "CLOSED",
-  ERR_MECHANICAL = "ERR_MECHANICAL"
 }
