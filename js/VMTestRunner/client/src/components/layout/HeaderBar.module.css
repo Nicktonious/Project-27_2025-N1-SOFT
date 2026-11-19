@@ -1,0 +1,34 @@
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 20px;
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-default);
+    box-shadow: var(--shadow-sm);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo {
+    font-size: var(--font-xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+}
+
+.controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.selectWrap {
+    width: 240px;
+}

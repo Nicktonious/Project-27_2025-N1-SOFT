@@ -1,0 +1,32 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-l);
+    box-shadow: var(--shadow-sm);
+}
+
+.title {
+    font-size: var(--font-l);
+    font-weight: 600;
+}
+
+.tabs {
+    display: flex;
+    gap: 6px;
+}
+
+.sections {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}

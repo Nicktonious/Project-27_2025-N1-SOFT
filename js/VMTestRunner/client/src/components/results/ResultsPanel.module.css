@@ -1,0 +1,130 @@
+.card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-l);
+    box-shadow: var(--shadow-md);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: sticky;
+    top: 16px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.title {
+    font-size: var(--font-l);
+    font-weight: 600;
+}
+
+.hint {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-m);
+}
+
+.errorBox {
+    composes: errorBox from '../../styles/shared.module.css';
+}
+
+.metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.metric {
+    padding: 8px 10px;
+    background-color: var(--bg-subtle);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-m);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.metricLabel {
+    font-size: var(--font-s);
+    color: var(--text-muted);
+}
+
+.metricValue {
+    font-size: var(--font-m);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.sectionTitle {
+    margin: 0 0 6px;
+    font-size: var(--font-s);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rowItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    background-color: var(--bg-subtle);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-s);
+    font-size: var(--font-s);
+}
+
+.mono {
+    font-family: var(--font-mono);
+}
+
+.timeline {
+    max-height: 280px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background-color: var(--bg-subtle);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-m);
+}
+
+.timelineRow {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: var(--font-s);
+    line-height: 1.4;
+}
+
+.time {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.msgError {
+    color: var(--color-danger);
+}
+
+.msgWarn {
+    color: var(--color-warning);
+}
+
+.msgOk {
+    color: var(--color-success);
+}

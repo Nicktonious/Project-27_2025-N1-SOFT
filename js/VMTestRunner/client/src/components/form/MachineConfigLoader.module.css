@@ -1,0 +1,33 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 560px;
+}
+
+.card {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-l);
+    box-shadow: var(--shadow-md);
+}
+
+.bigBtn {
+    width: 100%;
+    padding: 14px 18px;
+    font-size: var(--font-l);
+    font-weight: 600;
+}
+
+.hiddenInput {
+    display: none;
+}
+
+.errorBox {
+    composes: errorBox from '../../styles/shared.module.css';
+}
