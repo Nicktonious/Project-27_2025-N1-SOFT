@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 
 const { ClassSpiralSection } = require('../../js/srvSpiralSection');
 const { SpiralSectionState } = require('../../js/srvSpiralSectionStates');
-const { BOX_CONSTANTS, STORAGE_CONSTANSTS } = require('../../js/SpiralSectionConstants');
+const { BOX_CONSTANTS, STORAGE_CONSTANTS } = require('../../js/SpiralSectionConstants');
 const { ProxyChannelStub } = require('../../../../tests/helpers/ProxyChannelStub');
 const {
     createSpiralMachineConfig,
@@ -21,18 +21,8 @@ describe('ClassSpiralSection — Комплексное взаимодейств
     let section;
     let logs;
     let logger;
-    let activeIntervals = [];
-
-    const origSetInterval = global.setInterval;
 
     beforeEach(async () => {
-        activeIntervals = [];
-        global.setInterval = (...args) => {
-            const id = origSetInterval(...args);
-            activeIntervals.push(id);
-            return id;
-        };
-
         stub = new ProxyChannelStub();
         config = createSpiralMachineConfig({ id: '1', rows: 4, cols: 4, powerBus: 'BUS-1' });
 
@@ -72,7 +62,6 @@ describe('ClassSpiralSection — Комплексное взаимодейств
             },
             liftChannels: {
                 liftMotorCtrl: ch.Lift.MotorCtrl,
-                liftMotorCtrl2: ch.Lift.MotorCtrl2,
                 liftLevelSensor: ch.Lift.LevelSensor,
                 liftBottomTamper: ch.Lift.BottomTamper,
                 liftTopTamper: ch.Lift.TopTamper,
@@ -110,11 +99,6 @@ describe('ClassSpiralSection — Комплексное взаимодейств
     });
 
     afterEach(() => {
-        global.setInterval = origSetInterval;
-        for (const id of activeIntervals) {
-            clearInterval(id);
-        }
-        activeIntervals = [];
         section.Reset();
         stub.reset({ removeListeners: true });
     });

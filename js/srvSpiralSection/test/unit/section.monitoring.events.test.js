@@ -19,17 +19,8 @@ describe('ClassSpiralSection — Обработка событий моторе�
     let channels;
     let secChannels;
     let monitoringAdapter;
-    let activeIntervals = [];
-    const origSetInterval = global.setInterval;
 
     beforeEach(() => {
-        activeIntervals = [];
-        global.setInterval = (...args) => {
-            const id = origSetInterval(...args);
-            activeIntervals.push(id);
-            return id;
-        };
-
         stub = new ProxyChannelStub();
 
         const config = createSpiralMachineConfig({ rows: 2, cols: 2 });
@@ -92,11 +83,8 @@ describe('ClassSpiralSection — Обработка событий моторе�
     });
 
     afterEach(() => {
-        for (const id of activeIntervals) {
-            clearInterval(id);
-        }
-        activeIntervals = [];
-        global.setInterval = origSetInterval;
+        section.Reset();
+        stub.reset({ removeListeners: true });
     });
 
     it('при возникновении события LEVEL_PASSED у Lift, вызывает monitoringAdapter.RecordLevelPassed и инкрементирует monLift', () => {
@@ -149,17 +137,21 @@ describe('ClassSpiralSection — Обработка событий моторе�
             ProxyLogger: { Log: () => {} },
         });
 
-        stub.clearHistory();
+        try {
+            stub.clearHistory();
 
-        // Проверяем эмиссию событий — ошибок быть не должно
-        assert.doesNotThrow(() => {
-            sectionWithoutMon.Lift.emit(ClassSpiralSectionLift.EVENTS.LEVEL_PASSED, { distance: 0.15, level: 1 });
-            sectionWithoutMon.Storage.emit(ClassSpiralSectionStorage.EVENTS.DISPENSE_DONE, { cell: 1, rots: 1 });
-            sectionWithoutMon.Box.emit(ClassDeliveryBox.EVENTS.OPENED);
-        });
+            // Проверяем эмиссию событий — ошибок быть не должно
+            assert.doesNotThrow(() => {
+                sectionWithoutMon.Lift.emit(ClassSpiralSectionLift.EVENTS.LEVEL_PASSED, { distance: 0.15, level: 1 });
+                sectionWithoutMon.Storage.emit(ClassSpiralSectionStorage.EVENTS.DISPENSE_DONE, { cell: 1, rots: 1 });
+                sectionWithoutMon.Box.emit(ClassDeliveryBox.EVENTS.OPENED);
+            });
 
-        assert.equal(stub.getSentValues(secChannels.Lift.Monitoring).length, 0);
-        assert.equal(stub.getSentValues(secChannels.Storage.Monitoring).length, 0);
-        assert.equal(stub.getSentValues(secChannels.DeliveryBox.Monitoring).length, 0);
+            assert.equal(stub.getSentValues(secChannels.Lift.Monitoring).length, 0);
+            assert.equal(stub.getSentValues(secChannels.Storage.Monitoring).length, 0);
+            assert.equal(stub.getSentValues(secChannels.DeliveryBox.Monitoring).length, 0);
+        } finally {
+            sectionWithoutMon.Reset();
+        }
     });
 });

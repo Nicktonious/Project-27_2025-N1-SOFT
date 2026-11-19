@@ -2,7 +2,7 @@ const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { ClassSpiralSectionStorage } = require('../../../js/srvSpiralSectionStorage');
-const { STORAGE_CONSTANSTS, COMMON_CONSTANTS } = require('../../../js/SpiralSectionConstants');
+const { STORAGE_CONSTANTS, COMMON_CONSTANTS } = require('../../../js/SpiralSectionConstants');
 const {
     createStorageChannelsFixture,
     createMockSectionState,
@@ -18,12 +18,12 @@ const CURR_BUFFER_SIZE = 2;
 const VOLT_BUFFER_SIZE = 3;
 
 // --- Физические константы сигналов датчиков (сопоставленные со SpiralSectionConstants.js) ---
-const STORAGE_SUPPLY_VOLTAGE = STORAGE_CONSTANSTS.SUPPLY_VOLTAGE; // 24V
-const STORAGE_WORK_CURRENT = peekValueInRange(STORAGE_CONSTANSTS.CURRENT_RANGE.WORK_OK);
-const STORAGE_IDLE_CURRENT = peekValueInRange(STORAGE_CONSTANSTS.CURRENT_RANGE.IDLE);
-const STORAGE_OVERLOAD_CURRENT = peekValueInRange(STORAGE_CONSTANSTS.CURRENT_RANGE.OVERLOAD);
-const STORAGE_SHORT_THRESHOLD = STORAGE_CONSTANSTS.CURRENT_RANGE.SHORT[0]; // 1.4A
-const STORAGE_SHORT_CURRENT = getRangeAbove(STORAGE_CONSTANSTS.CURRENT_RANGE.SHORT, 0.5);
+const STORAGE_SUPPLY_VOLTAGE = STORAGE_CONSTANTS.SUPPLY_VOLTAGE; // 24V
+const STORAGE_WORK_CURRENT = peekValueInRange(STORAGE_CONSTANTS.CURRENT_RANGE.WORK_OK);
+const STORAGE_IDLE_CURRENT = peekValueInRange(STORAGE_CONSTANTS.CURRENT_RANGE.IDLE);
+const STORAGE_OVERLOAD_CURRENT = peekValueInRange(STORAGE_CONSTANTS.CURRENT_RANGE.OVERLOAD);
+const STORAGE_SHORT_THRESHOLD = STORAGE_CONSTANTS.CURRENT_RANGE.SHORT[0]; // 1.4A
+const STORAGE_SHORT_CURRENT = getRangeAbove(STORAGE_CONSTANTS.CURRENT_RANGE.SHORT, 0.5);
 const MIN_OPERATING_VOLTAGE = COMMON_CONSTANTS.MIN_VOLTAGE; // 16V
 
 const SAFE_VOLTAGE_DELTA = 0.5;
@@ -38,18 +38,8 @@ describe('ClassSpiralSectionStorage — утилитарные и вспомог
     let logs;
     let proxyLogger;
     let storage;
-    let activeIntervals = [];
-
-    const origSetInterval = global.setInterval;
 
     beforeEach(async () => {
-        activeIntervals = [];
-        global.setInterval = (...args) => {
-            const id = origSetInterval(...args);
-            activeIntervals.push(id);
-            return id;
-        };
-
         channels = createStorageChannelsFixture({ rows: ROWS });
 
         stub = new ProxyChannelStub();
@@ -81,11 +71,7 @@ describe('ClassSpiralSectionStorage — утилитарные и вспомог
     });
 
     afterEach(() => {
-        global.setInterval = origSetInterval;
-        for (const id of activeIntervals) {
-            clearInterval(id);
-        }
-        activeIntervals = [];
+        storage.Reset();
         stub.reset({ removeListeners: true });
     });
 
@@ -194,9 +180,9 @@ describe('ClassSpiralSectionStorage — утилитарные и вспомог
     // 3. Контроль тока и КЗ: CheckCurrentState(), IsShorted()
     // =========================================================================
     describe('CheckCurrentState() и IsShorted() — аналитическая классификация токов', () => {
-        const { CURRENT_RANGE, ELECTR_CURR_STATE } = STORAGE_CONSTANSTS;
+        const { CURRENT_RANGE, ELECTR_CURR_STATE } = STORAGE_CONSTANTS;
 
-        it('CheckCurrentState() классифицирует ток по диапазонам STORAGE_CONSTANSTS.CURRENT_RANGE', () => {
+        it('CheckCurrentState() классифицирует ток по диапазонам STORAGE_CONSTANTS.CURRENT_RANGE', () => {
             // IDLE: [0, 0.15)
             assert.equal(storage.CheckCurrentState(CURRENT_RANGE.IDLE[0]), ELECTR_CURR_STATE.IDLE);
             assert.equal(storage.CheckCurrentState(STORAGE_IDLE_CURRENT), ELECTR_CURR_STATE.IDLE);

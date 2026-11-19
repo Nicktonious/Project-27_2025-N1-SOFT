@@ -2,7 +2,7 @@ const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { ClassSpiralSectionStorage } = require('../../../js/srvSpiralSectionStorage');
-const { STORAGE_CONSTANSTS, COMMON_CONSTANTS, FAULTS } = require('../../../js/SpiralSectionConstants');
+const { STORAGE_CONSTANTS, COMMON_CONSTANTS, FAULTS } = require('../../../js/SpiralSectionConstants');
 const { SPIRAL_CELL_STATE } = require('../../../js/srvSpiralSectionStates');
 const { CELL_ACTION } = require('../../../../srvStatesController/ts/ISpiralSectionStates');
 const {
@@ -24,7 +24,7 @@ const BUS_NUMBER = 1;
 
 const BG_MOTOR_OFF_SETTLE_MS = TIME_BETWEEN_STEPS_MS + 20; // 320 мс — ожидание завершения MotorOff в afterEach
 const MANUAL_FIRST_PULSE_DELAY_MS = TIME_BETWEEN_STEPS_MS + 40; // 340 мс — сразу после выхода из MotorOnPhased
-const POST_DEBOUNCE_WAIT_MS = STORAGE_CONSTANSTS.TAMPER_DEBOUNCE + 20; // 520 мс — гарантированно после TAMPER_DEBOUNCE (500 мс)
+const POST_DEBOUNCE_WAIT_MS = STORAGE_CONSTANTS.TAMPER_DEBOUNCE + 20; // 520 мс — гарантированно после TAMPER_DEBOUNCE (500 мс)
 
 const BETWEEN_PULSES_MS = 40;
 const ABORT_BETWEEN_PULSES_MS = 60;
@@ -37,18 +37,8 @@ describe('ClassSpiralSectionStorage — управление актуатора�
     let sectionState;
     let logs;
     let storage;
-    let activeIntervals = [];
-
-    const origSetInterval = global.setInterval;
 
     beforeEach(async () => {
-        activeIntervals = [];
-        global.setInterval = (...args) => {
-            const id = origSetInterval(...args);
-            activeIntervals.push(id);
-            return id;
-        };
-
         channels = createStorageChannelsFixture({ rows: ROWS });
 
         stub = new ProxyChannelStub();
@@ -82,11 +72,6 @@ describe('ClassSpiralSectionStorage — управление актуатора�
         await new Promise((r) => setTimeout(r, BG_MOTOR_OFF_SETTLE_MS));
         storage.Reset();
         await new Promise((r) => setImmediate(r));
-        global.setInterval = origSetInterval;
-        for (const id of activeIntervals) {
-            clearInterval(id);
-        }
-        activeIntervals = [];
         emu.cleanup();
         stub.reset({ removeListeners: true });
     });

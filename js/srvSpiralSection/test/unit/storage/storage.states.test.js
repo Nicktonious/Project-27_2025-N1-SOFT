@@ -25,18 +25,8 @@ describe('ClassSpiralSectionStorage — управление состояния�
     let logs;
     let proxyLogger;
     let storage;
-    let activeIntervals = [];
-
-    const origSetInterval = global.setInterval;
 
     beforeEach(async () => {
-        activeIntervals = [];
-        global.setInterval = (...args) => {
-            const id = origSetInterval(...args);
-            activeIntervals.push(id);
-            return id;
-        };
-
         channels = createStorageChannelsFixture({ rows: ROWS });
 
         stub = new ProxyChannelStub();
@@ -68,11 +58,7 @@ describe('ClassSpiralSectionStorage — управление состояния�
     });
 
     afterEach(() => {
-        global.setInterval = origSetInterval;
-        for (const id of activeIntervals) {
-            clearInterval(id);
-        }
-        activeIntervals = [];
+        storage.Reset();
         stub.reset({ removeListeners: true });
     });
 

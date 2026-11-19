@@ -24,18 +24,8 @@ describe('ClassVendingSectionFacade — Тестирование бизнес-л
     let section;
     let logs;
     let logger;
-    let activeIntervals = [];
-
-    const origSetInterval = global.setInterval;
 
     beforeEach(async () => {
-        activeIntervals = [];
-        global.setInterval = (...args) => {
-            const id = origSetInterval(...args);
-            activeIntervals.push(id);
-            return id;
-        };
-
         stub = new ProxyChannelStub();
         config = createSpiralMachineConfig({ id: '1', rows: 4, cols: 4, powerBus: 'BUS-1' });
 
@@ -75,11 +65,6 @@ describe('ClassVendingSectionFacade — Тестирование бизнес-л
     });
 
     afterEach(() => {
-        global.setInterval = origSetInterval;
-        for (const id of activeIntervals) {
-            clearInterval(id);
-        }
-        activeIntervals = [];
         facade.Reset();
         stub.reset({ removeListeners: true });
     });

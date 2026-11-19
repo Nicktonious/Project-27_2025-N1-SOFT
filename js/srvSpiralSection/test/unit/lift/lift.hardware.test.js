@@ -27,18 +27,8 @@ describe('ClassSpiralSectionLift — управление актуаторами
     let logs;
     /** @type {ClassSpiralSectionLift} */
     let lift;
-    let activeIntervals = [];
-
-    const origSetInterval = global.setInterval;
 
     beforeEach(async () => {
-        activeIntervals = [];
-        global.setInterval = (...args) => {
-            const id = origSetInterval(...args);
-            activeIntervals.push(id);
-            return id;
-        };
-
         channels = createLiftChannelsFixture();
 
         stub = new ProxyChannelStub();
@@ -63,11 +53,7 @@ describe('ClassSpiralSectionLift — управление актуаторами
     });
 
     afterEach(() => {
-        global.setInterval = origSetInterval;
-        for (const id of activeIntervals) {
-            clearInterval(id);
-        }
-        activeIntervals = [];
+        lift.Reset();
         emu.cleanup();
         stub.reset({ removeListeners: true });
     });
@@ -93,9 +79,9 @@ describe('ClassSpiralSectionLift — управление актуаторами
             });
         });
 
-        it('StopForce() немедленно отправляет STOP в канал liftMotorCtrl2 без ожидания затухания тока', () => {
+        it('StopForce() немедленно отправляет STOP в канал liftMotorCtrl без ожидания затухания тока', () => {
             lift.StopForce();
-            assert.equal(stub.getLastSentValue(channels.liftMotorCtrl2), 'STOP');
+            assert.equal(stub.getLastSentValue(channels.liftMotorCtrl), 'STOP');
         });
     });
 
@@ -103,20 +89,20 @@ describe('ClassSpiralSectionLift — управление актуаторами
     // 2. Включение привода: Elevate({ cmd }), ElevateUp(), ElevateDown()
     // =========================================================================
     describe('Включение мотора лифта: Elevate(), ElevateUp(), ElevateDown()', () => {
-        it('ElevateUp() предварительно вызывает StopForce("STOP"), затем подает "UP" в liftMotorCtrl2 и дожидается рабочего тока', async () => {
+        it('ElevateUp() предварительно вызывает StopForce("STOP"), затем подает "UP" в liftMotorCtrl и дожидается рабочего тока', async () => {
             emu.attachMotorBehavior({ workCurrent: emu.CURR.workOk });
 
             await lift.ElevateUp();
 
-            assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl2), ['STOP', 'UP']);
+            assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl), ['STOP', 'UP']);
         });
 
-        it('ElevateDown() предварительно вызывает StopForce("STOP"), затем подает "DOWN" в liftMotorCtrl2 и дожидается рабочего тока', async () => {
+        it('ElevateDown() предварительно вызывает StopForce("STOP"), затем подает "DOWN" в liftMotorCtrl и дожидается рабочего тока', async () => {
             emu.attachMotorBehavior({ workCurrent: emu.CURR.workOk });
 
             await lift.ElevateDown();
 
-            assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl2), ['STOP', 'DOWN']);
+            assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl), ['STOP', 'DOWN']);
         });
 
         it('выбрасывает FAULTS.LIFT_CTRL_UNDEFINED, если еще до подачи команды на мотор ток уже находится в рабочем диапазоне (>= WORK_OK[0])', async () => {
@@ -130,7 +116,7 @@ describe('ClassSpiralSectionLift — управление актуаторами
             );
 
             // Команда 'UP' даже не должна была отправиться, только предварительный 'STOP'
-            assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl2), ['STOP']);
+            assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl), ['STOP']);
         });
 
         it('выбрасывает FAULTS.LIFT_SHORT_CIRCUIT при обнаружении признаков КЗ после подачи команды движения', async () => {
@@ -160,13 +146,13 @@ describe('ClassSpiralSectionLift — управление актуаторами
     // 3. Остановка привода с контролем тока: Stop()
     // =========================================================================
     describe('Остановка мотора с контролем спада тока: Stop()', () => {
-        it('отправляет "STOP" в liftMotorCtrl2 и завершается успешно, когда ток падает ниже WORK_OK[0]', async () => {
+        it('отправляет "STOP" в liftMotorCtrl и завершается успешно, когда ток падает ниже WORK_OK[0]', async () => {
             emu.setCurrent(emu.CURR.workOk);
             emu.attachMotorBehavior({ stopCurrent: emu.CURR.idle });
 
             await lift.Stop();
 
-            assert.equal(stub.getLastSentValue(channels.liftMotorCtrl2), 'STOP');
+            assert.equal(stub.getLastSentValue(channels.liftMotorCtrl), 'STOP');
         });
 
         it('выбрасывает FAULTS.IO_PORT_ERR, если после команды "STOP" ток не упал до холостого хода за 500 мс', async () => {
@@ -182,7 +168,7 @@ describe('ClassSpiralSectionLift — управление актуаторами
 
         it('выбрасывает FAULTS.LIFT_SHORT_CIRCUIT при остановке вне нижней позиции, если фиксируется КЗ', async () => {
             emu.setBottomTamper(false, { emit: false });
-            stub.onSet(channels.liftMotorCtrl2, (cmd) => {
+            stub.onSet(channels.liftMotorCtrl, (cmd) => {
                 if (cmd === 'STOP') {
                     emu.setCurrent(emu.CURR.short);
                 }
@@ -208,7 +194,7 @@ describe('ClassSpiralSectionLift — управление актуаторами
             assert.equal(lift.Level, 0);
             assert.equal(lift.State, ClassSpiralSectionLift.STATE.IDLE);
             // Команда 'DOWN' не подавалась, вызвался только Stop() при переходе в Idle()
-            assert.equal(stub.getSentValues(channels.liftMotorCtrl2).includes('DOWN'), false);
+            assert.equal(stub.getSentValues(channels.liftMotorCtrl).includes('DOWN'), false);
         });
 
         it('включает движение вниз ("DOWN"), ждет срабатывания liftBottomTamper и останавливает мотор на уровне 0', async () => {
@@ -224,7 +210,7 @@ describe('ClassSpiralSectionLift — управление актуаторами
 
             assert.equal(lift.Level, 0);
             assert.equal(lift.State, ClassSpiralSectionLift.STATE.IDLE);
-            assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl2), ['STOP', 'DOWN', 'STOP']);
+            assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl), ['STOP', 'DOWN', 'STOP']);
         });
 
         it('отклоняет вызов ElevateToBottom(), если статус лифта SHORT_CIRCUIT или OVERLOAD (!Available)', async () => {
@@ -278,7 +264,7 @@ describe('ClassSpiralSectionLift — управление актуаторами
 
             assert.equal(lift.Level, 3);
             assert.equal(lift.State, ClassSpiralSectionLift.STATE.IDLE);
-            assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl2), ['STOP', 'UP', 'STOP']);
+            assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl), ['STOP', 'UP', 'STOP']);
             // На каждом из 3 уровней эмитировалось событие LEVEL_PASSED (0.15)
             assert.equal(levelPassedEvents.length, 3);
             assert.deepEqual(
@@ -308,7 +294,7 @@ describe('ClassSpiralSectionLift — управление актуаторами
 
             assert.equal(lift.Level, 2);
             assert.equal(lift.State, ClassSpiralSectionLift.STATE.IDLE);
-            assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl2), ['STOP', 'DOWN', 'STOP']);
+            assert.deepEqual(stub.getSentValues(channels.liftMotorCtrl), ['STOP', 'DOWN', 'STOP']);
         });
 
         it('игнорирует однократный бросок тока выше порога КЗ во время движения (фильтрация помехи / пускового броска) и успешно достигает уровня', async () => {
@@ -347,7 +333,7 @@ describe('ClassSpiralSectionLift — управление актуаторами
 
             assert.equal(lift.StateAdapter.IsLiftOk, false);
             assert.equal(lift.StateAdapter.IsLiftAvailable, false);
-            assert.equal(stub.getLastSentValue(channels.liftMotorCtrl2), 'STOP');
+            assert.equal(stub.getLastSentValue(channels.liftMotorCtrl), 'STOP');
         });
 
         it('прерывает подъем с ошибкой FAULTS.LEVEL_SENSOR_FAIL и останавливает мотор при срабатывании верхнего аварийного концевика liftTopTamper', async () => {
@@ -366,7 +352,7 @@ describe('ClassSpiralSectionLift — управление актуаторами
 
             assert.equal(lift.StateAdapter.HasLiftLevelError, true);
             assert.equal(lift.Level, undefined);
-            assert.equal(stub.getLastSentValue(channels.liftMotorCtrl2), 'STOP');
+            assert.equal(stub.getLastSentValue(channels.liftMotorCtrl), 'STOP');
         });
 
         it('Abort() во время подъема останавливает мотор и возвращает автомат лифта в состояние IDLE', async () => {
@@ -380,7 +366,7 @@ describe('ClassSpiralSectionLift — управление актуаторами
             await lift.ElevateToLevel(4);
 
             assert.equal(lift.State, ClassSpiralSectionLift.STATE.IDLE);
-            assert.equal(stub.getLastSentValue(channels.liftMotorCtrl2), 'STOP');
+            assert.equal(stub.getLastSentValue(channels.liftMotorCtrl), 'STOP');
         });
     });
 });

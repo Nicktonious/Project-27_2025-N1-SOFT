@@ -27,18 +27,8 @@ describe('ClassSpiralSectionLift — управление состояниями
     let logs;
     let proxyLogger;
     let lift;
-    let activeIntervals = [];
-
-    const origSetInterval = global.setInterval;
 
     beforeEach(() => {
-        activeIntervals = [];
-        global.setInterval = (...args) => {
-            const id = origSetInterval(...args);
-            activeIntervals.push(id);
-            return id;
-        };
-
         channels = createLiftChannelsFixture();
 
         stub = new ProxyChannelStub();
@@ -65,11 +55,7 @@ describe('ClassSpiralSectionLift — управление состояниями
     });
 
     afterEach(() => {
-        global.setInterval = origSetInterval;
-        for (const id of activeIntervals) {
-            clearInterval(id);
-        }
-        activeIntervals = [];
+        lift.Reset();
         emuLift.cleanup();
         stub.reset({ removeListeners: true });
     });
