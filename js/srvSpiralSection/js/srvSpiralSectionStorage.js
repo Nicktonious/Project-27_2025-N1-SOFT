@@ -1,7 +1,7 @@
 const { EventEmitter2 } = require("eventemitter2");
 const { createTimer, isWithinTolerance, ClassFault } = require("./srvUtils");
 const { ClassFSM: FSM } = require("./srvFSM");
-const { STORAGE_CONSTANSTS, FAULTS, U_TRANSACTIONS, COMMON_CONSTANTS } = require("./SpiralSectionConstants");
+const { STORAGE_CONSTANTS, FAULTS, U_TRANSACTIONS, COMMON_CONSTANTS } = require("./SpiralSectionConstants");
 const { SpiralStateAdapter } = require("./srvSpiralStateAdapter");
 const ClassBuffer = require('../../../../HorizonServer/js/srvUtils/js/buffer');
 
@@ -10,7 +10,7 @@ const TIME_BETWEEN_STEPS = 300;
 
 let sleep = require('timers/promises').setTimeout;
 
-const { ELECTR_CURR_STATE, TAMPER_ON, TAMPER_OFF, CURRENT_RANGE, FULL_ROTATION_TIMEOUT, MONITOR_INTERVAL, TAMPER_DEBOUNCE } = STORAGE_CONSTANSTS;
+const { ELECTR_CURR_STATE, TAMPER_ON, TAMPER_OFF, CURRENT_RANGE, FULL_ROTATION_TIMEOUT, MONITOR_INTERVAL, TAMPER_DEBOUNCE } = STORAGE_CONSTANTS;
 const STATE = {
     IDLE: 'IDLE',
     DISPENSING: 'COLLECTING ',
@@ -307,7 +307,7 @@ class ClassSpiralSectionStorage extends EventEmitter2 {
                 return;
             };
             let I_curr = this._I_CurrBuffer.Filter();
-            let I_currState = this.#_ProxyCh.GetValue(this.#_Channels.short) == STORAGE_CONSTANSTS.SHORT_CH_VAL 
+            let I_currState = this.#_ProxyCh.GetValue(this.#_Channels.short) == STORAGE_CONSTANTS.SHORT_CH_VAL 
                             ? ELECTR_CURR_STATE.SHORT 
                             : this.CheckCurrentState(I_curr);
 
@@ -566,7 +566,7 @@ class ClassSpiralSectionStorage extends EventEmitter2 {
                 itemsDispensed: 0,
                 manual
             };
-            const MAX_TIME = order.quantity * STORAGE_CONSTANSTS.FULL_ROTATION_TIMEOUT * 2;
+            const MAX_TIME = order.quantity * STORAGE_CONSTANTS.FULL_ROTATION_TIMEOUT * 2;
             this.#_Context.fallbackTimer = createTimer(
                 () => this.#_FSM.Dispatch(this.EVENTS.FAULT, new StorageFault({ code: FAULTS.NONE })),
                 MAX_TIME).set();
@@ -999,6 +999,9 @@ class ClassSpiralSectionStorage extends EventEmitter2 {
         /*for (let [eventName, handler] of this.#_ChHandlers) 
             if (eventName && handler) this.#_ProxyCh.Events.off(eventName, handler);
         this.#_ChHandlers.clear();*/
+
+        if (this.#_PSUWatch) clearInterval(this.#_PSUWatch);
+        this.#_PSUWatch = null;
 
         this.#_Context.units = this.#_Context.units.map(u => ({
             ...u,

@@ -46,8 +46,8 @@ class Lift {
      */
     seedDefaultHardware({ atBottom = true } = {}) {
         const initial = {};
-        if (this.channels?.liftMotorCtrl2) {
-            initial[this.channels.liftMotorCtrl2] = 'STOP';
+        if (this.channels?.liftMotorCtrl) {
+            initial[this.channels.liftMotorCtrl] = 'STOP';
         }
         if (this.channels?.liftBottomTamper) {
             initial[this.channels.liftBottomTamper] = atBottom
@@ -168,7 +168,7 @@ class Lift {
     }
 
     /**
-     * Авто-реакция привода лифта на команды `liftMotorCtrl2`:
+     * Авто-реакция привода лифта на команды `liftMotorCtrl`:
      * - при `'UP'` / `'DOWN'` подает ток `workCurrent` (или сценарий КЗ)
      * - при `'STOP'` опускает ток до `stopCurrent`
      */
@@ -183,7 +183,7 @@ class Lift {
             this.motorListenerOff = null;
         }
 
-        this.motorListenerOff = this.proxy.onSet(this.channels.liftMotorCtrl2, (cmd) => {
+        this.motorListenerOff = this.proxy.onSet(this.channels.liftMotorCtrl, (cmd) => {
             if (cmd === 'UP' || cmd === 'DOWN') {
                 if (cmd === 'UP') {
                     this.setBottomTamper(false, { emit: true });
@@ -214,12 +214,12 @@ class Lift {
             onStartMove: async (cmd) => {
                 await this._delay(startDelayMs);
                 for (let i = 0; i < stepsCount; i++) {
-                    if (this.proxy.GetValue(this.channels.liftMotorCtrl2) === 'STOP') return;
+                    if (this.proxy.GetValue(this.channels.liftMotorCtrl) === 'STOP') return;
                     await this.pulseLevelSensor(10);
                     await this._delay(stepIntervalMs);
                 }
                 if (reachBottom && cmd === 'DOWN') {
-                    if (this.proxy.GetValue(this.channels.liftMotorCtrl2) === 'STOP') return;
+                    if (this.proxy.GetValue(this.channels.liftMotorCtrl) === 'STOP') return;
                     this.setBottomTamper(true, { emit: true });
                 }
             },

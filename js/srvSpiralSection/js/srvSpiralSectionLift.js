@@ -1,7 +1,7 @@
 const { EventEmitter2 } = require("eventemitter2");
 const { createTimer, ClassFault: Fault, isWithinTolerance } = require("./srvUtils");
 const { ClassFSM: FSM } = require("./srvFSM");
-const { LIFT_CONSTANTS, FAULTS, STORAGE_CONSTANSTS, U_TRANSACTIONS, COMMON_CONSTANTS } = require("./SpiralSectionConstants");
+const { LIFT_CONSTANTS, FAULTS, STORAGE_CONSTANTS, U_TRANSACTIONS, COMMON_CONSTANTS } = require("./SpiralSectionConstants");
 const { SpiralStateAdapter } = require("./srvSpiralStateAdapter");
 const ClassBuffer = require('../../../../HorizonServer/js/srvUtils/js/buffer');
 let sleep = require('timers/promises').setTimeout;
@@ -59,7 +59,7 @@ class ClassSpiralSectionLift extends EventEmitter2 {
         motorTransition: false,
         movingDir: 0
     };
-    #_CurrentWatch = null;
+
     /**@type {EventEmitter2} */
     #_Events = new EventEmitter2(); 
     #_uTransactionsList = [];
@@ -341,7 +341,7 @@ class ClassSpiralSectionLift extends EventEmitter2 {
             if (this.#_Context.motorTransition) return;
 
             let I_curr = this._I_CurrBuffer.Filter();
-            let I_currState = this.#_ProxyCh.GetValue(this.#_Channels.short) == STORAGE_CONSTANSTS.SHORT_CH_VAL 
+            let I_currState = this.#_ProxyCh.GetValue(this.#_Channels.short) == STORAGE_CONSTANTS.SHORT_CH_VAL 
                             ? ELECTR_CURR_STATE.SHORT 
                             : this.CheckCurrentState(I_curr);
 
@@ -558,7 +558,7 @@ class ClassSpiralSectionLift extends EventEmitter2 {
         this.LogTransaction(fwd ? U_TRANSACTIONS.LIFT_FWD : U_TRANSACTIONS.LIFT_REV);
         
         // step = 2;
-        this.#_ProxyCh.SetValue(this.#_Channels.liftMotorCtrl2, fwd ? 'UP' : 'DOWN');
+        this.#_ProxyCh.SetValue(this.#_Channels.liftMotorCtrl, fwd ? 'UP' : 'DOWN');
         // this.MotorStep(cmd, { step: 2 });
 
         let current_2;
@@ -639,7 +639,7 @@ class ClassSpiralSectionLift extends EventEmitter2 {
         const fwd = this.#_Context.movingDir > 0;
         this.LogTransaction(fwd ? U_TRANSACTIONS.LIFT_STOP_AFTER_FWD : U_TRANSACTIONS.LIFT_STOP_AFTER_REV);
         let step = 1;
-        this.#_ProxyCh.SetValue(this.#_Channels.liftMotorCtrl2, 'STOP');
+        this.#_ProxyCh.SetValue(this.#_Channels.liftMotorCtrl, 'STOP');
         // this.MotorStep('Off', { step });
         let elapsed = 0;
         let current_1;
@@ -669,7 +669,7 @@ class ClassSpiralSectionLift extends EventEmitter2 {
     StopForce() {
         this.LogTransaction(this.#_Context.movingDir > 0 ? U_TRANSACTIONS.LIFT_STOP_AFTER_FWD : U_TRANSACTIONS.LIFT_STOP_AFTER_REV);
         
-        this.#_ProxyCh.SetValue(this.#_Channels.liftMotorCtrl2, 'STOP');
+        this.#_ProxyCh.SetValue(this.#_Channels.liftMotorCtrl, 'STOP');
         // this.MotorStep('Off', { step: 2 });
 
         this.#_Context.movingDir = 0;
@@ -828,8 +828,8 @@ class ClassSpiralSectionLift extends EventEmitter2 {
         // const levelValueEventName = `${this.#_Channels.liftLevelSensor}-value`;
         // this.#_ProxyCh.Events.off(levelValueEventName, this.#_LevelHandler);
 
-        // if (this.#_CurrentWatch) clearInterval(this.#_CurrentWatch)
-        // this.#_CurrentWatch = null;
+        if (this.#_PSUWatch) clearInterval(this.#_PSUWatch)
+        this.#_PSUWatch = null;
         
         this.Stop().catch(() => {}); // Catch stop error during reset
         if (this.#_Context.currentTask?.rej) {

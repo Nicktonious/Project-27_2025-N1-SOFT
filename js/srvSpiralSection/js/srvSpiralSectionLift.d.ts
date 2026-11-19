@@ -7,10 +7,8 @@ import StatesController from "../../srvStatesController/js/srvSectionStateContro
  * Описание каналов ввода-вывода для управления и мониторинга лифта
  */
 export interface TypeSpiralSectionLiftChannels {
-    /** Канал шагового управления двигателем лифта */
-    liftMotorCtrl?: string;
     /** Канал прямого управления направлением движения двигателя лифта ('UP' | 'DOWN' | 'STOP') */
-    liftMotorCtrl2?: string;
+    liftMotorCtrl?: string;
     /** Канал концевика нижнего положения лифта */
     liftBottomTamper: string;
     /** Канал концевика верхнего положения лифта (аварийный концевик) */

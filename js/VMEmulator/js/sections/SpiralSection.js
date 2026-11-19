@@ -1,5 +1,5 @@
 const { EventEmitter2 } = require('eventemitter2');
-const { STORAGE_CONSTANSTS, COMMON_CONSTANTS } = require('../constants.js');
+const { STORAGE_CONSTANTS, COMMON_CONSTANTS } = require('../constants.js');
 const { peekValueInRange } = require('../utils/emuUtils.js');
 
 /**
@@ -22,10 +22,10 @@ class SpiralSection {
         this.log = log;
 
         this.CURR = {
-            idle: peekValueInRange(STORAGE_CONSTANSTS.CURRENT_RANGE.IDLE),
-            workOk: peekValueInRange(STORAGE_CONSTANSTS.CURRENT_RANGE.WORK_OK),
-            overload: peekValueInRange(STORAGE_CONSTANSTS.CURRENT_RANGE.OVERLOAD),
-            short: peekValueInRange(STORAGE_CONSTANSTS.CURRENT_RANGE.SHORT),
+            idle: peekValueInRange(STORAGE_CONSTANTS.CURRENT_RANGE.IDLE),
+            workOk: peekValueInRange(STORAGE_CONSTANTS.CURRENT_RANGE.WORK_OK),
+            overload: peekValueInRange(STORAGE_CONSTANTS.CURRENT_RANGE.OVERLOAD),
+            short: peekValueInRange(STORAGE_CONSTANTS.CURRENT_RANGE.SHORT),
         };
 
         this.pendingTimers = new Set();
@@ -52,7 +52,7 @@ class SpiralSection {
 
         const initial = {};
         if (this.channels?.current) initial[this.channels.current] = this.CURR.idle;
-        if (this.channels?.voltage) initial[this.channels.voltage] = STORAGE_CONSTANSTS.SUPPLY_VOLTAGE;
+        if (this.channels?.voltage) initial[this.channels.voltage] = STORAGE_CONSTANTS.SUPPLY_VOLTAGE;
         if (this.channels?.short) initial[this.channels.short] = 0;
         if (this.channels?.psuWork) initial[this.channels.psuWork] = 1;
         if (this.channels?.monSpirals) initial[this.channels.monSpirals] = null;
@@ -60,7 +60,7 @@ class SpiralSection {
         for (let r = 0; r < rowsCount; r++) {
             const chName = tamperChannels[r];
             if (chName) {
-                initial[chName] = STORAGE_CONSTANSTS.TAMPER_ON;
+                initial[chName] = STORAGE_CONSTANTS.TAMPER_ON;
             }
         }
 
@@ -126,7 +126,7 @@ class SpiralSection {
      * @param {{ emit?: boolean }} [opts]
      */
     setRowTamper(row, isOn, { emit = true } = {}) {
-        const val = isOn ? STORAGE_CONSTANSTS.TAMPER_ON : STORAGE_CONSTANSTS.TAMPER_OFF;
+        const val = isOn ? STORAGE_CONSTANTS.TAMPER_ON : STORAGE_CONSTANTS.TAMPER_OFF;
         this.proxy.inject(this.channels.spiralTamperChannels[row], val, { emit });
     }
 
@@ -212,7 +212,7 @@ class SpiralSection {
     simulateRotations({
         cols = this.size?.cols ?? 12,
         rotationsCount = 1,
-        firstPulseDelayMs = 300 + STORAGE_CONSTANSTS.TAMPER_DEBOUNCE + 80,
+        firstPulseDelayMs = 300 + STORAGE_CONSTANTS.TAMPER_DEBOUNCE + 80,
         betweenPulsesMs = 40,
     } = {}) {
         return this.attachMatrixBehavior({
